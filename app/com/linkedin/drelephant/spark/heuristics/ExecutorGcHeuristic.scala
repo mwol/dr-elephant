@@ -22,6 +22,7 @@ import com.linkedin.drelephant.analysis._
 import com.linkedin.drelephant.configurations.heuristic.HeuristicConfigurationData
 import com.linkedin.drelephant.spark.data.SparkApplicationData
 import com.linkedin.drelephant.math.Statistics
+import com.linkedin.drelephant.util.Utils
 
 
 import scala.collection.JavaConverters
@@ -66,7 +67,7 @@ class ExecutorGcHeuristic(private val heuristicConfigurationData: HeuristicConfi
       heuristicConfigurationData.getClassName,
       heuristicConfigurationData.getHeuristicName,
       evaluator.severityTimeA,
-      0,
+      Utils.getHeuristicScore(evaluator.severityTimeA, data.executorSummaries.size),
       resultDetails.asJava
     )
     result

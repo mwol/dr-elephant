@@ -21,8 +21,10 @@ export default Ember.Route.extend({
     this.jobid = transition.queryParams.jobid;
   },
   model(){
-    this.jobs = this.store.queryRecord('job', {jobid: this.get("jobid")});
-    return this.jobs;
+    return Ember.RSVP.hash({
+      jobs:   this.store.queryRecord('job', {jobid: this.get("jobid")}),
+      tunein: this.store.queryRecord('tunein', {id: this.get("jobid")})
+    });
   },
   actions: {
     error(error, transition) {

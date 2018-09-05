@@ -136,9 +136,13 @@ public class ElephantRunner implements Runnable {
               waitInterval(_retryInterval);
               continue;
             }
-
+            int count = 5;
             for (AnalyticJob analyticJob : todos) {
-              _threadPoolExecutor.submit(new ExecutorJob(analyticJob));
+
+//              _threadPoolExecutor.submit(new ExecutorJob(analyticJob));
+              count--;
+              if(count == 0)
+                break;
             }
 
             int queueSize = _threadPoolExecutor.getQueue().size();

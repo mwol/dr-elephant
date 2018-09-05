@@ -13,26 +13,12 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+import DS from 'ember-data';
 
-import Ember from 'ember';
-
-export default Ember.Route.extend({
-
-  beforeModel: function (transition) {
-    this.applicationid = transition.queryParams.applicationid;
-  },
-
-  model(){
-    this.applications = this.store.queryRecord('application', {applicationid: this.get("applicationid")});
-    return this.applications;
-  },
-  actions: {
-
-    error(error, transition) {
-      debugger;
-      if (error.errors[0].status == 404) {
-        return this.transitionTo('not-found', { queryParams: {'previous': window.location.href}});
-      }
-    }
-  }
+export default DS.Model.extend({
+  tuningParameters: DS.attr(),
+  tuningAlgorithmId: DS.attr('number'),
+  tuningAlgorithm: DS.attr('string'),
+  tuningAlgorithms: DS.attr(),
+  iterationCount: DS.attr('number')
 });

@@ -14,25 +14,7 @@
  * the License.
  */
 
-import Ember from 'ember';
+import DS from 'ember-data';
 
-export default Ember.Route.extend({
-
-  beforeModel: function (transition) {
-    this.applicationid = transition.queryParams.applicationid;
-  },
-
-  model(){
-    this.applications = this.store.queryRecord('application', {applicationid: this.get("applicationid")});
-    return this.applications;
-  },
-  actions: {
-
-    error(error, transition) {
-      debugger;
-      if (error.errors[0].status == 404) {
-        return this.transitionTo('not-found', { queryParams: {'previous': window.location.href}});
-      }
-    }
-  }
+export default DS.RESTSerializer.extend({
 });

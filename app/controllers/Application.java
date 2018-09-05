@@ -25,10 +25,11 @@ import com.linkedin.drelephant.ElephantContext;
 import com.linkedin.drelephant.analysis.Metrics;
 import com.linkedin.drelephant.analysis.Severity;
 import com.linkedin.drelephant.util.Utils;
-
+import java.lang.reflect.Array;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -44,11 +45,18 @@ import java.util.TreeSet;
 import models.AppHeuristicResult;
 import models.AppResult;
 
+import models.JobDefinition;
+import models.JobExecution;
+import models.JobSuggestedParamSet;
+import models.JobSuggestedParamValue;
+import models.TuningAlgorithm;
+import models.TuningParameter;
 import org.apache.commons.collections.map.ListOrderedMap;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.log4j.Logger;
 
+import org.codehaus.jettison.json.JSONArray;
 import play.api.templates.Html;
 import play.data.DynamicForm;
 import play.data.Form;
@@ -121,9 +129,17 @@ public class Application extends Controller {
   private static int _numJobsSevere = 0;
 
 
+  public static Result preflight(String all) {
+    response().setHeader("Access-Control-Allow-Origin", "*");
+    response().setHeader("Allow", "*");
+    response().setHeader("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
+    response().setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Referer, User-Agent");
+    return ok();
+  }
+
   /**
-  * Serves the initial index.html page for the new user interface. This page contains the whole web app
-  */
+   * Serves the initial index.html page for the new user interface. This page contains the whole web app
+   */
   public static Result serveAsset(String path) {
     return ok(index.render());
   }
@@ -161,6 +177,7 @@ public class Application extends Controller {
         .fetch(AppResult.TABLE.APP_HEURISTIC_RESULTS, AppHeuristicResult.getSearchFields())
         .findList();
 
+
     return ok(homePage.render(_numJobsAnalyzed, _numJobsSevere, _numJobsCritical,
         searchResults.render("Latest analysis", results)));
   }
@@ -187,12 +204,12 @@ public class Application extends Controller {
       throw new RuntimeException(String.format("%s is not a valid scheduler info id field", schedulerIdField));
     }
     AppResult result = AppResult.find
-            .select(String.format("%s, %s", schedulerIdField, schedulerUrlField))
-            .where().like(schedulerIdField, value)
-            .order()
-            .desc(AppResult.TABLE.FINISH_TIME)
-            .setMaxRows(1)
-            .findUnique();
+        .select(String.format("%s, %s", schedulerIdField, schedulerUrlField))
+        .where().like(schedulerIdField, value)
+        .order()
+        .desc(AppResult.TABLE.FINISH_TIME)
+        .setMaxRows(1)
+        .findUnique();
     if (result != null) {
       if (schedulerIdField.equals(AppResult.TABLE.FLOW_DEF_ID)) {
         return new IdUrlPair(result.flowDefId, result.flowDefUrl);
@@ -302,9 +319,9 @@ public class Application extends Controller {
       return ok(searchPage.render(null, jobDetails.render(null)));
     } else {
       List<AppResult> resultsToDisplay = results.subList((currentPage - paginationBarStartIndex) * pageLength,
-              Math.min(results.size(), (currentPage - paginationBarStartIndex + 1) * pageLength));
+          Math.min(results.size(), (currentPage - paginationBarStartIndex + 1) * pageLength));
       return ok(searchPage.render(paginationStats, searchResults.render(
-              String.format("Results: Showing %,d of %,d", resultsToDisplay.size(), query.findRowCount()), resultsToDisplay)));
+          String.format("Results: Showing %,d of %,d", resultsToDisplay.size(), query.findRowCount()), resultsToDisplay)));
     }
   }
 
@@ -642,8 +659,8 @@ public class Application extends Controller {
         return ok(flowHistoryPage.render(flowDefPair.getId(), graphType,
             flowHistoryResults.render(flowDefPair, executionMap, idPairToJobNameMap, flowExecTimeList)));
       } else if (graphType.equals("resources") || graphType.equals("time")) {
-          return ok(flowHistoryPage.render(flowDefPair.getId(), graphType, flowMetricsHistoryResults
-              .render(flowDefPair, graphType, executionMap, idPairToJobNameMap, flowExecTimeList)));
+        return ok(flowHistoryPage.render(flowDefPair.getId(), graphType, flowMetricsHistoryResults
+            .render(flowDefPair, graphType, executionMap, idPairToJobNameMap, flowExecTimeList)));
       }
     } else {
       if (graphType.equals("heuristics")) {
@@ -655,7 +672,7 @@ public class Application extends Controller {
               + " graphs are not supported for spark right now");
         } else {
           return ok(oldFlowHistoryPage.render(flowDefPair.getId(), graphType, oldFlowMetricsHistoryResults
-                  .render(flowDefPair, graphType, executionMap, idPairToJobNameMap, flowExecTimeList)));
+              .render(flowDefPair, graphType, executionMap, idPairToJobNameMap, flowExecTimeList)));
         }
       }
     }
@@ -773,8 +790,8 @@ public class Application extends Controller {
         return ok(jobHistoryPage.render(jobDefPair.getId(), graphType,
             jobHistoryResults.render(jobDefPair, executionMap, maxStages, flowExecTimeList)));
       } else if (graphType.equals("resources") || graphType.equals("time")) {
-          return ok(jobHistoryPage.render(jobDefPair.getId(), graphType,
-              jobMetricsHistoryResults.render(jobDefPair, graphType, executionMap, maxStages, flowExecTimeList)));
+        return ok(jobHistoryPage.render(jobDefPair.getId(), graphType,
+            jobMetricsHistoryResults.render(jobDefPair, graphType, executionMap, maxStages, flowExecTimeList)));
       }
     } else {
       if (graphType.equals("heuristics")) {
@@ -1504,7 +1521,7 @@ public class Application extends Controller {
       }
       SimpleDateFormat tf = null ;
       if( startTime.length() == 10 ) {
-         tf = new SimpleDateFormat("yyyy-MM-dd");
+        tf = new SimpleDateFormat("yyyy-MM-dd");
       }
       else {
         tf = new SimpleDateFormat("yyyy-MM-dd-HH");
@@ -1636,6 +1653,115 @@ public class Application extends Controller {
     JsonArray sortedDatasets = Utils.sortJsonArray(datasets);
 
     return ok(new Gson().toJson(sortedDatasets));
+  }
+
+  public static Result getTuningParameters() {
+    List<TuningParameter> sparkParameters = TuningParameter.find
+        .select("paramName")
+        .where()
+        .ilike("paramName", "%")
+        .findList();
+
+    logger.info("size of param result: " + sparkParameters.size());
+    JsonArray datasets = new JsonArray();
+
+    for(TuningParameter tuningParameter: sparkParameters) {
+      logger.info("param : " + tuningParameter.paramName);
+      JsonObject dataset = new JsonObject();
+      dataset.addProperty("name", tuningParameter.paramName);
+      datasets.add(dataset);
+    }
+    return ok(new Gson().toJson(datasets));
+  }
+
+
+
+
+
+
+  public static Result getTuningParameter(String jobId) {
+    JsonObject parent = new JsonObject();
+    JsonObject tuneIn = new JsonObject();
+    JsonArray tuningParameters = new JsonArray();
+    JsonArray tuningAlgorithms = new JsonArray();
+
+    logger.info("jobId:: " + jobId);
+
+    for(TuningAlgorithm.OptimizationAlgo algorithm: TuningAlgorithm.OptimizationAlgo.values()) {
+      JsonObject algorithmInfo = new JsonObject();
+      algorithmInfo.addProperty("name", algorithm.name());
+      tuningAlgorithms.add(algorithmInfo);
+    }
+
+    try {
+      List<TuningParameter> parametersList =
+          TuningParameter.find.select("*")
+              .where()
+              .ilike(TuningParameter.TABLE.paramName, "mapreduce%")
+              .findList();
+      logger.info("size of paramList " + parametersList.size());
+
+      JobExecution jobExecution = JobExecution.find.select("*")
+          .where()
+          .eq(JobExecution.TABLE.jobExecId, jobId)
+          .findUnique();
+
+      Integer jobDefinitionId = 0;
+      if (jobExecution == null) {
+        logger.info("job execution is null");
+      } else {
+        jobDefinitionId = jobExecution.job.id;
+      }
+
+      logger.info("jobDefinitionid::  " + jobDefinitionId);
+
+      JobSuggestedParamSet jobSuggestedParamSet = JobSuggestedParamSet.find.select("*")
+          .where()
+          .eq(JobSuggestedParamSet.TABLE.jobDefinition + "." + JobDefinition.TABLE.id , jobDefinitionId.toString())
+          .order()
+          .desc(JobSuggestedParamSet.TABLE.createdTs)
+          .setMaxRows(1)
+          .findUnique();
+
+      TuningAlgorithm tuningAlgorithm = jobSuggestedParamSet.tuningAlgorithm;
+
+      logger.info("Job Suggested Param Id:: " + jobSuggestedParamSet.id);
+
+      for (TuningParameter tuningParam : parametersList) {
+        String paramName = tuningParam.paramName;
+        Integer id = tuningParam.id;
+        logger.info("params:: " + paramName + " " + id + " " + tuningParam.paramName);
+
+        JobSuggestedParamValue suggestedParams = JobSuggestedParamValue.find.select("*")
+            .where()
+            .eq(JobSuggestedParamValue.TABLE.jobSuggestedParamSet + "." + JobSuggestedParamSet.TABLE.id, jobSuggestedParamSet.id)
+            .eq(JobSuggestedParamValue.TABLE.tuningParameter + "." + TuningParameter.TABLE.id, id)
+            .findUnique();
+
+        if (suggestedParams == null) {
+          continue;
+        }
+
+        logger.info("paramResult for execId: " + jobId + " and tpId: " + id + " " + suggestedParams.paramValue);
+        JsonObject param = new JsonObject();
+        param.addProperty("name", paramName);
+        param.addProperty("suggestedValue", suggestedParams.paramValue);
+        tuningParameters.add(param);
+        logger.info("param: " + tuningParameters);
+      }
+      tuneIn.addProperty("id", jobId);
+      tuneIn.addProperty("tuningAlgorithmId", tuningAlgorithm.id);
+      tuneIn.addProperty("tuningAlgorithm", tuningAlgorithm.optimizationAlgo.name());
+      tuneIn.add("tuningAlgorithms", tuningAlgorithms);
+      tuneIn.addProperty("iterationCount",15);
+      tuneIn.add("tuningParameters", tuningParameters);
+      parent.add("tunein", tuneIn);
+      logger.info("tuneIn : " + tuneIn);
+      return ok(new Gson().toJson(parent));
+    } catch (Exception ex) {
+      logger.error(ex);
+      return ok(new Gson().toJson(new JsonObject()));
+    }
   }
 
   /**
