@@ -20,8 +20,9 @@ import scala.collection.JavaConverters
 import com.linkedin.drelephant.analysis.{ApplicationType, Severity, SeverityThresholds}
 import com.linkedin.drelephant.configurations.heuristic.HeuristicConfigurationData
 import com.linkedin.drelephant.spark.data.{SparkApplicationData, SparkLogDerivedData, SparkRestDerivedData}
-import com.linkedin.drelephant.spark.fetchers.statusapiv1.{ApplicationInfoImpl, ExecutorSummaryImpl, StageDataImpl}
+import com.linkedin.drelephant.spark.fetchers.statusapiv1.{ApplicationInfoImpl, ExecutorSummaryImpl, StageDataImpl, StageStatus}
 import com.linkedin.drelephant.spark.heuristics.ExecutorStorageSpillHeuristic.Evaluator
+import com.linkedin.drelephant.spark.heuristics.SparkTestUtilities.{StageBuilder, sdf}
 import org.apache.spark.scheduler.SparkListenerEnvironmentUpdate
 import org.scalatest.{FunSpec, Matchers}
 
@@ -38,60 +39,102 @@ class ExecutorStorageSpillHeuristicTest extends FunSpec with Matchers {
     val executorStorageSpillHeuristic = new ExecutorStorageSpillHeuristic(heuristicConfigurationData)
 
     val appConfigurationProperties = Map("spark.executor.memory" -> "4g", "spark.executor.cores"->"4", "spark.executor.instances"->"4")
+    val appConfigurationProperties2 = Map("spark.executor.memory" -> "5g", "spark.executor.cores"->"4", "spark.executor.instances"->"4", "spark.sql.shuffle.partitions"->"4300")
 
     val executorSummaries = Seq(
       newFakeExecutorSummary(
         id = "1",
-        totalMemoryBytesSpilled = 200000L
+        totalMemoryBytesSpilled = 200000L,
+        0
       ),
       newFakeExecutorSummary(
         id = "2",
-        totalMemoryBytesSpilled = 100000L
+        totalMemoryBytesSpilled = 100000L,
+        0
       ),
       newFakeExecutorSummary(
         id = "3",
-        totalMemoryBytesSpilled = 300000L
+        totalMemoryBytesSpilled = 300000L,
+        0
       ),
       newFakeExecutorSummary(
         id = "4",
-        totalMemoryBytesSpilled = 200000L
+        totalMemoryBytesSpilled = 200000L,
+        1
+      )
+    )
+    //total task count > 4000
+    val executorSummaries2 = Seq(
+      newFakeExecutorSummary(
+        id = "1",
+        totalMemoryBytesSpilled = 200000L,
+        2500
+      ),
+      newFakeExecutorSummary(
+        id = "2",
+        totalMemoryBytesSpilled = 500000L,
+        2000
       )
     )
 
+    val stageData1: Seq[StageDataImpl] = Seq(
+      StageBuilder(0,10).taskRuntime(100, 220, 300).spill(130, 250, 340).create(),
+      StageBuilder(1,100).taskRuntime(50,250,500).shuffleRead(200, 300, 800)
+        .spill(100, 150, 400).create()
+    )
+
+    val stageData2: Seq[StageDataImpl] = Seq(
+      StageBuilder(0,10).taskRuntime(100, 220, 300).create(),
+      StageBuilder(1,100).taskRuntime(50,250,500).shuffleRead(200, 300, 800).create()
+    )
+
+
     describe(".apply") {
-      val data1 = newFakeSparkApplicationData(executorSummaries, appConfigurationProperties)
+      val data1 = newFakeSparkApplicationData(executorSummaries, stageData1, appConfigurationProperties)
+      val data2 = newFakeSparkApplicationData(executorSummaries2, stageData2, appConfigurationProperties2)
       val heuristicResult = executorStorageSpillHeuristic.apply(data1)
+      val heuristicResult2 = executorStorageSpillHeuristic.apply(data2)
       val heuristicResultDetails = heuristicResult.getHeuristicResultDetails
-      val evaluator = new Evaluator(executorStorageSpillHeuristic, data1)
+      val heuristicResultDetails2 = heuristicResult2.getHeuristicResultDetails
+      val stageAnalysisResult = new StagesAnalyzer(heuristicConfigurationData, data1).getStageAnalysis()
+      val evaluator = new Evaluator(executorStorageSpillHeuristic, data1, stageAnalysisResult)
 
       it("returns the severity") {
-        heuristicResult.getSeverity should be(Severity.SEVERE)
+        heuristicResult.getSeverity should be(Severity.CRITICAL)
+      }
+
+      it("return the data skew note") {
+        heuristicResultDetails.get(6).getName should be("Data Skew")
+      }
+
+      it("return the data skew severity") {
+        evaluator.taskSkewSeverity should be(Severity.MODERATE)
       }
 
       it("returns the score") {
-        heuristicResult.getScore should be(Severity.SEVERE.getValue * data1.executorSummaries.size)
+        heuristicResult.getScore should be(evaluator.severity.getValue * data1.executorSummaries.size)
       }
 
       it("returns the total memory spilled") {
         val details = heuristicResultDetails.get(0)
         details.getName should include("Total memory spilled")
-        details.getValue should be("781.25 KB")
+        details.getValue should be("740 MB")
       }
 
       it("returns the max memory spilled") {
         val details = heuristicResultDetails.get(1)
         details.getName should include("Max memory spilled")
-        details.getValue should be("292.97 KB")
+        details.getValue should be("400 MB")
       }
 
       it("returns the mean memory spilled") {
         val details = heuristicResultDetails.get(2)
         details.getName should include("Mean memory spilled")
-        details.getValue should be("195.31 KB")
+        details.getValue should be("6.73 MB")
       }
 
-      it("has the memory spilled per task") {
-        evaluator.totalMemorySpilledPerTask should be(800000)
+      it("returns no data skew due to more tasks and executor memory than the threshold") {
+        heuristicResult2.getHeuristicResultDetails.size() should be(4)
       }
     }
   }
@@ -105,7 +148,8 @@ object ExecutorStorageSpillHeuristicTest {
 
   def newFakeExecutorSummary(
     id: String,
-    totalMemoryBytesSpilled: Long
+    totalMemoryBytesSpilled: Long,
+    totalTasks: Int
   ): ExecutorSummaryImpl = new ExecutorSummaryImpl(
     id,
     hostPort = "",
@@ -115,7 +159,7 @@ object ExecutorStorageSpillHeuristicTest {
     activeTasks = 0,
     failedTasks = 0,
     completedTasks = 0,
-    totalTasks = 0,
+    totalTasks,
     maxTasks = 10,
     totalDuration=0,
     totalInputBytes=0,
@@ -131,6 +175,7 @@ object ExecutorStorageSpillHeuristicTest {
 
   def newFakeSparkApplicationData(
     executorSummaries: Seq[ExecutorSummaryImpl],
+    stageData: Seq[StageDataImpl],
     appConfigurationProperties: Map[String, String]
   ): SparkApplicationData = {
     val appId = "application_1"
@@ -138,7 +183,7 @@ object ExecutorStorageSpillHeuristicTest {
     val restDerivedData = SparkRestDerivedData(
       new ApplicationInfoImpl(appId, name = "app", Seq.empty),
       jobDatas = Seq.empty,
-      stageDatas = Seq.empty,
+      stageDatas = stageData,
       executorSummaries = executorSummaries,
       stagesWithFailedTasks = Seq.empty
     )
