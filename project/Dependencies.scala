@@ -93,8 +93,10 @@ object Dependencies {
     "org.apache.httpcomponents" % "httpclient" % "4.5.2",
     "org.apache.httpcomponents" % "httpcore" % "4.4.4",
     "org.scalatest" %% "scalatest" % "3.0.0" % Test,
-    "com.h2database" % "h2" % "1.4.196" % Test
-
+    "com.h2database" % "h2" % "1.4.196" % Test,
+    "com.github.tomakehurst" % "wiremock-standalone" % "2.21.0" % Test excludeAll(
+      ExclusionRule(organization = "org.apache.httpcomponents")
+      )
   ) :+ sparkExclusion
 
   var dependencies = Seq(javaJdbc, javaEbean, cache)

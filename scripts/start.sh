@@ -131,6 +131,11 @@ if [ -n "${metrics}" ]; then
   OPTS+=" -Dmetrics=$metrics"
 fi
 
+
+if [ -n "${azkaban_to_cluster_map}" ]; then
+  OPTS+=" -Dazkaban_to_cluster_map=$azkaban_to_cluster_map"
+fi
+
 # Enable metrics agent jar if configured. Agent publishes metrics to other apps.
 if [ -n "${metrics_agent_jar}" ]; then
   OPTS+=" -J$metrics_agent_jar"

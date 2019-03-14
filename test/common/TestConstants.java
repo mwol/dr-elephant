@@ -16,6 +16,9 @@
 
 package common;
 
+import scala.Int;
+
+
 public class TestConstants {
 
   // Test data constants
@@ -78,6 +81,8 @@ public class TestConstants {
   public static final String REST_FLOW_METRICS_GRAPH_DATA_PATH = "/rest/flowmetricsgraphdata";
   public static final String REST_USER_RESOURCE_USAGE_PATH = "/rest/resourceusagedatabyuser";
   public static final String REST_GET_CURRENT_RUN_PARAMETERS = "/rest/getCurrentRunParameters";
+  public static final String REST_LOGIN_ENDPOINT = "/rest/login";
+  public static final String REST_USER_AUTHORIZATION_API_ENDPOINT = "/rest/userAuthorization";
 
   public static final String DEFAULT_ENCODING = "UTF-8";
 
@@ -113,6 +118,28 @@ public class TestConstants {
   public static final String JSON_PARTICLE_BIRTHDATE_KEY = "birthdate";
   public static final String JSON_PARTICLE_MAXIMIZE_KEY = "maximize";
   public static final String JSON_PARTICLE_FITNESS_KEY = "fitness";
+
+  //Mock Scheduler server constants
+  public static final String MOCK_SCHEDULER_HOST = "localhost";
+  public static final int MOCK_SCHEDULER_PORT = 9191;
+
+
+  //Authuntication and Authorization Constants
+  public static final String FAKE_SCHEDULER_URL = "http://localhost:9191";
+  public static final String SCHEDULER_URL_KEY = "schedulerUrl";
+  public static final String AZKABAN_LOGIN_URL_SUFFIX = "/?action=login";
+  public static final String AZKABAN_USER_AUTHORIZATION_URL_SUFFIX = "/manager";
+  public static final String LOGIN_CREDENTIAL_ERROR_MESSAGE = "Incorrect Login. Username/Password+VIP not found.";
+  public static final String SUCCESS_KEY = "success";
+  public static final String SESSION_ID = "session_id";
+  public static final String JOB_DEFITION_ID = "jobDefId";
+  public static final String TEST_PROJECT_NAME = "auth_test_project";
+  public static final String TEST_SESSION_ID1 = "48fe6ae4-a3fc-4e6f-bc0a-6f6ac3165673";
+  public static final String TEST_SESSION_ID2 = "8bf3bfe1-5a22-4b52-8ced-544ff4b1e9ae";
+  public static final String TEST_JOB_DEF_ID2 =
+      "https://localhost:9191/manager?project=auth_test_project&flow=test_flow&job=sample_job";
+  public static final String INVALID_JOB_DEF_ID2 =
+      "https://localhost:9191/manager?flow=test_flow&job=sample_job";
 
 
 }

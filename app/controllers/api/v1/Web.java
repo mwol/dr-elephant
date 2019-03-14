@@ -92,6 +92,9 @@ public class Web extends Controller {
   private static int _numJobsLow = 0;
   private static int _numJobsNone = 0;
 
+  private static final String AZKABAN_TO_CLUSTER_MAP_KEY = "azkaban_to_cluster_map";
+  private static Map<String, String> azkabanKeyToClusterNameMap = new HashMap();
+
   /**
    * Returns the json object for the dashboard summaries of jobs analzyed in last day.
    */
@@ -1052,6 +1055,7 @@ public class Web extends Controller {
     data.addProperty(JsonKeys.FLOW_DEF_ID, flowDefinitionId);
     data.addProperty(JsonKeys.QUEUE, queueName);
     data.addProperty(JsonKeys.SCHEDULER, scheduler);
+    data.addProperty(JsonKeys.CLUSTER, getClusterName(jobid));
     data.add(JsonKeys.TASKS_SUMMARIES, taskSummaryArray);
     data.add(JsonKeys.TASKS_SEVERITY, taskSeverity);
 
@@ -2007,5 +2011,36 @@ public class Web extends Controller {
       // return 0
     }
     return unixTime;
+  }
+
+  /**
+   * Parse the JobId to extract the cluster name
+   *
+   * @param jobId JobId
+   * @return the cluster name if the jobId belongs to configured clusters else None
+   */
+  private static String getClusterName(String jobId) {
+    if (azkabanKeyToClusterNameMap.size() == 0) {
+      if (System.getProperty(AZKABAN_TO_CLUSTER_MAP_KEY) == null) {
+        logger.error("Azkaban to Cluster Map is not present in the config file");
+        return "None";
+      }
+      logger.info("Initializing the azkaban_to_cluster_name map");
+      String[] azkabanClusterList = System.getProperty("azkaban_to_cluster_map").split(",");
+      for (String cluster : azkabanClusterList) {
+        String[] row = cluster.split(":");
+        if (row.length != 2) {
+          throw new IllegalArgumentException("Config azkaban_to_cluster_map is not configured properly");
+        }
+        azkabanKeyToClusterNameMap.put(row[0], row[1]);
+      }
+    }
+    for (Map.Entry<String, String> keyValuePair : azkabanKeyToClusterNameMap.entrySet()) {
+      if (jobId.contains(keyValuePair.getKey())) {
+        return keyValuePair.getValue();
+      }
+    }
+    //Return "None" if jobId doesn't belong to the configured clusters' scheduler
+    return "None";
   }
 }

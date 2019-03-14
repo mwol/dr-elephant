@@ -54,6 +54,7 @@ Router.map(function () {
   this.route('user-details');
   this.route('workflow-exceptions');
   this.route('work-in-progress');
+  this.route('login');
 });
 
 export default Router;

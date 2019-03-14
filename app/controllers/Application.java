@@ -19,16 +19,22 @@ package controllers;
 import com.avaje.ebean.ExpressionList;
 import com.avaje.ebean.Query;
 import com.codahale.metrics.Timer;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.linkedin.drelephant.ElephantContext;
 import com.linkedin.drelephant.analysis.Metrics;
 import com.linkedin.drelephant.analysis.Severity;
 import com.linkedin.drelephant.util.Utils;
+import com.sun.jndi.toolkit.url.Uri;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -41,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.validation.constraints.NotNull;
 import models.AppHeuristicResult;
 import models.AppResult;
 import models.TuningAlgorithm;
@@ -53,16 +60,31 @@ import models.TuningJobDefinition;
 import models.TuningJobExecutionParamSet;
 import models.TuningParameter;
 import org.apache.commons.collections.map.ListOrderedMap;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
+import org.codehaus.jettison.json.JSONObject;
+import play.Configuration;
 import play.api.templates.Html;
 import play.data.DynamicForm;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import views.html.helper.form;
 import views.html.index;
 import views.html.help.metrics.helpRuntime;
 import views.html.help.metrics.helpWaittime;
@@ -87,6 +109,8 @@ import com.google.gson.JsonObject;
 import com.linkedin.drelephant.tuning.AutoTuningAPIHelper;
 import com.linkedin.drelephant.tuning.TuningInput;
 import com.linkedin.drelephant.tuning.engine.SparkConfigurationConstants;
+
+import static com.linkedin.drelephant.util.Utils.*;
 
 
 public class Application extends Controller {
@@ -118,8 +142,24 @@ public class Application extends Controller {
   public static final String COMPARE_FLOW_ID1 = "flow-exec-id1";
   public static final String COMPARE_FLOW_ID2 = "flow-exec-id2";
   public static final String PAGE = "page";
+  public static final String SESSION_ID_KEY = "session_id";
+  public static final String PROJECT_KEY = "project";
+  public static final String PASSWORD = "password";
+  public static final String ERROR_KEY = "error";
+  public static final String SCHEDULER_URL = "schedulerUrl";
+  public static final String AUTHORIZATION_AJAX_ENDPOINT = "checkForWritePermission";
+  public static final String IS_USER_AUTHORISED_KEY = "hasWritePermission";
+  public static final String AJAX = "ajax";
+  public static final String AZKABAN_AUTHORIZATION_URL_SUFFIX = "/manager";
+  public static final String AZKABAN_AUTHENTICATION_URL_SUFFIX = "/?action=login";
+  public static final String AZKABAN_SESSION_ID_KEY = "session.id";
+  public static final String STATUS = "status";
+  public static final String SUCCESS = "success";
+
 
   private enum Version {OLD,NEW};
+
+
 
   // Configuration properties
   private static final String SEARCH_MATCHES_PARTIAL_CONF = "drelephant.application.search.match.partial";
@@ -171,7 +211,7 @@ public class Application extends Controller {
         .findList();
 
     return ok(homePage.render(_numJobsAnalyzed, _numJobsSevere, _numJobsCritical,
-        searchResults.render("Latest analysis", results)));
+        views.html.results.searchResults.render("Latest analysis", results)));
   }
 
   /**
@@ -259,7 +299,7 @@ public class Application extends Controller {
           .where()
           .idEq(appId).findUnique();
       return ok(searchPage.render(null, jobDetails.render(result)));
-    } else if (Utils.isSet(partialFlowExecId)) {
+    } else if (isSet(partialFlowExecId)) {
       IdUrlPair flowExecPair = bestSchedulerInfoMatchGivenPartialId(partialFlowExecId, AppResult.TABLE.FLOW_EXEC_ID);
       List<AppResult> results = AppResult.find
           .select(AppResult.getSearchFields() + "," + AppResult.TABLE.JOB_EXEC_ID)
@@ -375,22 +415,22 @@ public class Application extends Controller {
 
     // Build predicates
     String username = searchParams.get(USERNAME);
-    if (Utils.isSet(username)) {
+    if (isSet(username)) {
       query = query.eq(AppResult.TABLE.USERNAME, username);
     }
 
     String queuename = searchParams.get(QUEUE_NAME);
-    if (Utils.isSet(queuename)) {
+    if (isSet(queuename)) {
       query = query.eq(AppResult.TABLE.QUEUE_NAME, queuename);
     }
     String jobType = searchParams.get(JOB_TYPE);
-    if (Utils.isSet(jobType)) {
+    if (isSet(jobType)) {
       query = query.eq(AppResult.TABLE.JOB_TYPE, jobType);
     }
     String severity = searchParams.get(SEVERITY);
-    if (Utils.isSet(severity)) {
+    if (isSet(severity)) {
       String analysis = searchParams.get(ANALYSIS);
-      if (Utils.isSet(analysis)) {
+      if (isSet(analysis)) {
         query =
             query.eq(AppResult.TABLE.APP_HEURISTIC_RESULTS + "." + AppHeuristicResult.TABLE.HEURISTIC_NAME, analysis)
                 .ge(AppResult.TABLE.APP_HEURISTIC_RESULTS + "." + AppHeuristicResult.TABLE.SEVERITY, severity);
@@ -401,14 +441,14 @@ public class Application extends Controller {
 
     // Time Predicates. Both the startedTimeBegin and startedTimeEnd are inclusive in the filter
     String startedTimeBegin = searchParams.get(STARTED_TIME_BEGIN);
-    if (Utils.isSet(startedTimeBegin)) {
+    if (isSet(startedTimeBegin)) {
       long time = parseTime(startedTimeBegin);
       if (time > 0) {
         query = query.ge(AppResult.TABLE.START_TIME, time);
       }
     }
     String startedTimeEnd = searchParams.get(STARTED_TIME_END);
-    if (Utils.isSet(startedTimeEnd)) {
+    if (isSet(startedTimeEnd)) {
       long time = parseTime(startedTimeEnd);
       if (time > 0) {
         query = query.le(AppResult.TABLE.START_TIME, time);
@@ -416,14 +456,14 @@ public class Application extends Controller {
     }
 
     String finishedTimeBegin = searchParams.get(FINISHED_TIME_BEGIN);
-    if (Utils.isSet(finishedTimeBegin)) {
+    if (isSet(finishedTimeBegin)) {
       long time = parseTime(finishedTimeBegin);
       if (time > 0) {
         query = query.ge(AppResult.TABLE.FINISH_TIME, time);
       }
     }
     String finishedTimeEnd = searchParams.get(FINISHED_TIME_END);
-    if (Utils.isSet(finishedTimeEnd)) {
+    if (isSet(finishedTimeEnd)) {
       long time = parseTime(finishedTimeEnd);
       if (time > 0) {
         query = query.le(AppResult.TABLE.FINISH_TIME, time);
@@ -431,7 +471,7 @@ public class Application extends Controller {
     }
 
     // If queried by start time then sort the results by start time.
-    if (Utils.isSet(startedTimeBegin) || Utils.isSet(startedTimeEnd)) {
+    if (isSet(startedTimeBegin) || isSet(startedTimeEnd)) {
       return query.order().desc(AppResult.TABLE.START_TIME);
     } else {
       return query.order().desc(AppResult.TABLE.FINISH_TIME);
@@ -552,7 +592,7 @@ public class Application extends Controller {
       graphType = "resources";
     }
 
-    if (!Utils.isSet(partialFlowDefId)) {
+    if (!isSet(partialFlowDefId)) {
       if (version.equals(Version.NEW)) {
         return ok(flowHistoryPage
             .render(partialFlowDefId, graphType, flowHistoryResults.render(null, null, null, null)));
@@ -704,7 +744,7 @@ public class Application extends Controller {
       graphType = "resources";
     }
 
-    if (!Utils.isSet(partialJobDefId)) {
+    if (!isSet(partialJobDefId)) {
       if (version.equals(Version.NEW)) {
         return ok(
             jobHistoryPage.render(partialJobDefId, graphType, jobHistoryResults.render(null, null, -1, null)));
@@ -1869,6 +1909,88 @@ public class Application extends Controller {
     bestParamValueMap.put("executionId", bestTuningJobExecutionParamSet.jobExecution.jobExecUrl);
     return ok(Json.toJson(bestParamValueMap));
   }
+
+  /** Rest Api implementation for authenticating the user using Scheduler's Authentication API
+   * @result JSON containing session.id on successful authentication else the error message
+   * eg: Formatted JSON Data
+   * {
+   *  "status" : "success"
+   *  "session_id" : "4b52bfe1-5a22-9a56-8ced-955dd5b9f0ea"
+   *}
+   **/
+  public static Result authenticateUser() {
+    DynamicForm form = Form.form().bindFromRequest(request());
+    final String username = form.get(USERNAME);
+    final String password = form.get(PASSWORD);
+    final String schedulerUrl = form.get(SCHEDULER_URL);
+    logger.info("Authenticating user: " + username + " " + schedulerUrl);
+    logger.info(isSet(username) + " " + isSet(password) + " " + isSet(schedulerUrl));
+    if (!isSet(username) || !isSet(password)) {
+      return badRequest("Username or Password cannot be empty");
+    } else if (!isSet(schedulerUrl)) {
+      return badRequest("Scheduler Url is empty!!");
+    }
+    Map<String, String> response;
+    try {
+      response = authenticateUser(username, password, schedulerUrl + AZKABAN_AUTHENTICATION_URL_SUFFIX);
+    } catch (Exception ex) {
+      logger.error("Some error occured while authenticating the user " + ex);
+      return internalServerError();
+    }
+    return ok(Json.toJson(response));
+  }
+
+  /** Rest Api implementation for providing the status of user's authorization to WRITE
+   * to a respective project of a Scheduler
+   *
+   * @param jobDefId - JobDefintion Id specific to the project
+   * @param schedulerUrl - The url of the scheduler to which the job belongs
+   * @param sessionId - the scheduler session_id of the user
+   * @result JSON containing a Boolean (hasWritePermission) which tells if
+   * the user has WRITE access to the project
+   * eg: Formatted JSON Data
+   * {
+   *  "hasWritePermission" : "true"
+   *}
+   **/
+  public static Result getUserAuthorizationStatus(String sessionId, String jobDefId, String schedulerUrl) {
+    if (!isSet(sessionId) || !isSet(jobDefId) || !isSet(schedulerUrl)) {
+      return badRequest("SessionId or JobDefId or SchedulerUrl cannot be empty");
+    }
+    Map<String, String> responseMap = new HashMap();
+    try {
+      Map<String, String> queryParams = new HashMap();
+      queryParams.put(AZKABAN_SESSION_ID_KEY, sessionId);
+      queryParams.put(AJAX, AUTHORIZATION_AJAX_ENDPOINT);
+      //Extracting Project Name from the Job Definition id
+      List<NameValuePair> jobDefQueryParams = URLEncodedUtils.parse(new java.net.URI(jobDefId), "UTF-8");
+      for (NameValuePair param: jobDefQueryParams) {
+        if (param.getName().equals(PROJECT_KEY)) {
+          logger.info(PROJECT_KEY + " " + param.getValue());
+          queryParams.put(PROJECT_KEY, param.getValue());
+          break;
+        }
+      }
+      if (!queryParams.containsKey(PROJECT_KEY)) {
+        return badRequest("Job Definition doesn't contain Project name");
+      }
+      HttpResponse response = httpGetCall(schedulerUrl + AZKABAN_AUTHORIZATION_URL_SUFFIX, queryParams);
+      HttpEntity entity = response.getEntity();
+      if (entity != null) {
+        JSONObject result = new JSONObject(EntityUtils.toString(entity));
+        if (result.has(ERROR_KEY)) {
+          responseMap.put(ERROR_KEY, result.get(ERROR_KEY).toString());
+        } else if (result.get(IS_USER_AUTHORISED_KEY) != null){
+          responseMap.put(IS_USER_AUTHORISED_KEY, result.get(IS_USER_AUTHORISED_KEY).toString());
+        }
+      }
+    } catch (Exception ex) {
+      logger.error("Error while fetching User's Project Authorization status ",ex);
+      return internalServerError("Something went wrong while authorizing the user");
+    }
+    return ok(Json.toJson(responseMap));
+  }
+
   /**
    * Returns a list of AppResults after quering the FLOW_EXEC_ID from the database
    * @return The list of AppResults
@@ -2020,5 +2142,68 @@ public class Application extends Controller {
           Double.parseDouble(truncateParamValueFormat.format(param.paramValue)));
     }
     return paramValueMap;
+  }
+
+  private static Map<String, String> authenticateUser(String username, String password, String url) throws Exception {
+    logger.info("Making authentication call to " + url);
+    Map<String, String> postCallEntityParams = new HashMap();
+    postCallEntityParams.put(USERNAME, username);
+    postCallEntityParams.put(PASSWORD, password);
+    HttpResponse response = httpPostCall(url, postCallEntityParams);
+    HttpEntity entity = response.getEntity();
+    Map<String, String> responseMap = new HashMap();
+    if (entity != null) {
+      String responseEntity = EntityUtils.toString(entity);
+      JSONObject result = new JSONObject(responseEntity);
+      if (result.has(ERROR_KEY)) {
+        responseMap.put(ERROR_KEY, result.get(ERROR_KEY).toString());
+      } else {
+        logger.info(result.get(STATUS));
+        if (result.get(STATUS) != null && result.get(STATUS).toString().equals(SUCCESS)) {
+          responseMap.put(STATUS, result.get(STATUS).toString());
+          responseMap.put(SESSION_ID_KEY, result.get(AZKABAN_SESSION_ID_KEY).toString());
+        }
+      }
+    } else {
+      logger.error("Empty response entity encountered while authenticating " + username);
+      responseMap.put(ERROR_KEY, "Something went wrong while processing the request");
+    }
+    return responseMap;
+  }
+
+  private static HttpResponse httpGetCall(String url, Map<String,String> queryParams)
+      throws IOException, URISyntaxException {
+    if (url == null) {
+      throw new IllegalArgumentException("URL cannot be NULL for GET call");
+    }
+    URIBuilder builder = new URIBuilder(url);
+    logger.info("Making a GET call to URL " + url);
+    if (queryParams != null) {
+      for (Map.Entry<String, String> entry : queryParams.entrySet()) {
+        builder.setParameter(entry.getKey(), entry.getValue());
+      }
+    }
+    URI getUri = builder.build();
+    HttpGet request = new HttpGet(getUri);
+    CloseableHttpClient client = HttpClients.createDefault();
+    return client.execute(request);
+  }
+
+  private static HttpResponse httpPostCall(String url, Map<String,String> postParams)
+      throws IOException {
+    if (!isSet(url)) {
+      throw new IllegalArgumentException("URL cannot be NULL for POST call");
+    }
+    logger.info("Making aa POST call to URL " + url);
+    List<NameValuePair> postEntity = new ArrayList();
+    if (postParams != null) {
+      for (Map.Entry<String, String> entry : postParams.entrySet()) {
+        postEntity.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+      }
+    }
+    HttpPost httpPost = new HttpPost(url);
+    httpPost.setEntity(new UrlEncodedFormEntity(postEntity));
+    CloseableHttpClient client = HttpClients.createDefault();
+    return client.execute(httpPost);
   }
 }

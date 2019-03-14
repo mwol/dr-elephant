@@ -60,6 +60,7 @@ public class JsonKeys {
   public static String TYPE = "type";
   public static String TASKS = "tasks";
   public static String WORKFLOW_EXCEPTIONS = "workflow-exceptions";
+  public static String CLUSTER = "cluster";
 
 
   // Workflows

@@ -52,5 +52,14 @@ test('Test job display name', function(assert) {
 
   jobexecid = "https://x:y:z"
   assert.equal(scheduler.getJobDisplayName(jobexecid, jobdefid,schedulerName),jobexecid);
-
 });
+
+test('Test extracted Scheduler Url from JobDefId' , function(assert) {
+  var scheduler = new Scheduler();
+  var jobdefid = "https://localhost:8443/manager?project=project1&flow=flow1&job=job1"
+  var schedulerName = "azkaban";
+  var schedulerUrl = "https://localhost:8443";
+
+  assert.equal(scheduler.getSchedulerUrl(jobdefid,schedulerName), schedulerUrl);
+
+})

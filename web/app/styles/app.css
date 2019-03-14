@@ -349,3 +349,46 @@ input:checked + .slider:after
   margin: 2px;
   color: #0e90d2;
 }
+
+.container-full {
+  padding: 0 105px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  min-width: 1075px;
+}
+
+.form-control-auto {
+  width: auto;
+}
+
+.login {
+  max-width: 360px;
+  margin: 20px auto;
+}
+
+.login .form-control {
+  position: relative;
+  font-size: 16px;
+  height: auto;
+  padding: 10px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+.login .form-control:focus {
+  z-index: 2;
+}
+
+.login input[type="text"] {
+  margin-bottom: -1px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.login input[type="password"] {
+  margin-bottom: 20px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
