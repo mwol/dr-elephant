@@ -57,8 +57,10 @@ GET        /rest/workflow-exceptions            controllers.api.v1.Web.restExcep
 GET        /rest/exception-statuses             controllers.api.v1.Web.restExceptionStatuses()
 GET        /rest/tunein                         controllers.Application.getTuningParameter(id: String)
 GET        /rest/getJobBestParameter            controllers.Application.getJobBestParameter(jobDefId: String)
+GET        /rest/userAuthorization              controllers.Application.getUserAuthorizationStatus(sessionId: String, jobDefId: String, schedulerUrl: String)
 POST       /rest/getCurrentRunParameters        controllers.Application.getCurrentRunParameters()
 POST       /rest/showTuneinParams               controllers.Application.updateShowRecommendationCount()
+POST       /rest/login                          controllers.Application.authenticateUser()
 
 # Metrics calls
 GET        /ping                                controllers.MetricsController.ping()

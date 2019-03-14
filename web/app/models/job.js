@@ -36,6 +36,7 @@ export default DS.Model.extend({
     tasksseverity: DS.attr(),
     queue: DS.attr("string"),
     scheduler: DS.attr("string"),
+    cluster: DS.attr("string"),
     jobdisplayname: Ember.computed('jobname', 'jobdefid', 'jobexecid', 'scheduler', function () {
         var jobname = this.get('jobname');
         if(jobname!=null && jobname!="") {

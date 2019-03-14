@@ -46,5 +46,6 @@ module.exports = function (defaults) {
   app.import(app.bowerDirectory + '/bootstrap/dist/fonts/glyphicons-halflings-regular.woff', {
     destDir: 'fonts'
   });
+  app.import(app.bowerDirectory + '/js-cookie/src/js.cookie.js');
   return app.toTree();
 };

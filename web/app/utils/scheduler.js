@@ -96,5 +96,21 @@ export default Ember.Object.extend({
       displayName = jobExecutionId;
     }
     return displayName;
+  },
+
+  getSchedulerUrl(jobDefinitionId, schedulerName) {
+    var schedulerUrl;
+    //since jobDefId is of
+    switch (schedulerName) {
+    case Schedulers.AZKABAN:
+      var endIndex = jobDefinitionId.indexOf("/manager");
+      schedulerUrl = jobDefinitionId.substr(0, endIndex);
+      console.log(schedulerUrl);
+      break;
+
+    default:
+      schedulerUrl = jobDefinitionId;
+      }
+    return schedulerUrl;
   }
 });

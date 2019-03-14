@@ -18,6 +18,7 @@ package rest;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.google.gson.Gson;
 import com.linkedin.drelephant.DrElephant;
 import com.linkedin.drelephant.ElephantContext;
@@ -25,40 +26,43 @@ import com.linkedin.drelephant.tuning.Manager;
 import com.linkedin.drelephant.tuning.obt.BaselineManagerOBT;
 import com.linkedin.drelephant.tuning.obt.FitnessManagerOBTAlgoPSO;
 import com.linkedin.drelephant.util.Utils;
-
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import models.JobDefinition;
 import models.JobExecution;
 import models.JobExecution.ExecutionState;
 import models.JobSuggestedParamSet;
-import models.TuningJobDefinition;
 import models.JobSuggestedParamSet.ParamSetStatus;
-
+import models.TuningJobDefinition;
 import models.TuningJobExecutionParamSet;
 import org.apache.hadoop.conf.Configuration;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import play.Application;
 import play.GlobalSettings;
 import play.libs.WS;
 import play.test.FakeApplication;
+import play.test.Helpers;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static common.DBTestUtil.*;
 import static common.TestConstants.*;
-import static org.junit.Assert.assertTrue;
-import static play.test.Helpers.fakeApplication;
-import static play.test.Helpers.running;
-import static play.test.Helpers.testServer;
+import static controllers.Application.*;
+import static controllers.Application.BAD_REQUEST;
+import static controllers.Application.INTERNAL_SERVER_ERROR;
+import static controllers.Application.OK;
+import static org.junit.Assert.*;
+import static play.test.Helpers.*;
+
 
 
 /**
@@ -75,6 +79,7 @@ public class RestAPITest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestAPITest.class);
   private static FakeApplication fakeApp;
+  private WireMockServer _wireMockServer;
 
   @Before
   public void setup() {
@@ -84,6 +89,8 @@ public class RestAPITest {
     dbConn.put(EVOLUTION_PLUGIN_KEY, EVOLUTION_PLUGIN_VALUE);
     dbConn.put(APPLY_EVOLUTIONS_DEFAULT_KEY, APPLY_EVOLUTIONS_DEFAULT_VALUE);
 
+    setUpAndStartMockSchedulerServer();
+
     GlobalSettings gs = new GlobalSettings() {
       @Override
       public void onStart(Application app) {
@@ -92,6 +99,21 @@ public class RestAPITest {
     };
 
     fakeApp = fakeApplication(dbConn, gs);
+  }
+
+  @After
+  public void stop() {
+    Helpers.stop(fakeApp);
+    stopMockSchedulerServer();
+  }
+
+  private void setUpAndStartMockSchedulerServer() {
+    _wireMockServer = new WireMockServer(MOCK_SCHEDULER_PORT);
+    _wireMockServer.start();
+  }
+
+  private void stopMockSchedulerServer() {
+    _wireMockServer.stop();
   }
 
   /**
@@ -966,6 +988,271 @@ public class RestAPITest {
     });
   }
 
+  @Test
+  public void testRestLoginIfUsernameOrPasswordEmpty() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        Map<String, String> params = new HashMap();
+        params.put(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL);
+        params.put(PASSWORD, "password");
+
+        JsonNode jsonNode = new ObjectMapper().valueToTree(params);
+        final WS.Response response = WS.url(BASE_URL + REST_LOGIN_ENDPOINT).
+            post(jsonNode).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        assertEquals(response.getStatus(), BAD_REQUEST);
+        assertEquals(response.getBody(), "Username or Password cannot be empty");
+
+        params.replace(USERNAME, "", "testUser");
+        params.replace(PASSWORD, "password", "");
+
+        jsonNode = new ObjectMapper().valueToTree(params);
+        final WS.Response response_2 = WS.url(BASE_URL + REST_LOGIN_ENDPOINT).
+            post(jsonNode).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        assertEquals(response_2.getStatus(), BAD_REQUEST);
+        assertEquals(response_2.getBody(), "Username or Password cannot be empty");
+      }
+    });
+  }
+
+  @Test
+  public void testRestLoginIfSchedulerUrlEmpty() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        Map<String, String> params = new HashMap();
+        params.put(USERNAME, "testUser");
+        params.put(PASSWORD, "password");
+
+        JsonNode jsonNode = new ObjectMapper().valueToTree(params);
+        final WS.Response response = WS.url(BASE_URL + REST_LOGIN_ENDPOINT).
+            post(jsonNode).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        assertEquals(response.getStatus(), BAD_REQUEST);
+        assertEquals(response.getBody(), "Scheduler Url is empty!!");
+      }
+    });
+  }
+
+  @Test
+  public void testRestLoginForValidUser() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        String session_id = UUID.randomUUID().toString();
+        _wireMockServer.stubFor(post(urlEqualTo(AZKABAN_LOGIN_URL_SUFFIX))
+            .willReturn(aResponse()
+                .withBody(String.format("{\"status\": \"success\", \"session.id\": \"%s\"}", session_id))
+                .withStatus(OK)));
+
+        Map<String, String> params = new HashMap();
+        params.put(USERNAME, "valid_user");
+        params.put(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL);
+        params.put(PASSWORD, "correct_password");
+
+        JsonNode jsonNode = new ObjectMapper().valueToTree(params);
+        final WS.Response response = WS.url(BASE_URL + REST_LOGIN_ENDPOINT).
+            post(jsonNode).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        final JsonNode jsonResponse = response.asJson();
+        assertTrue(jsonResponse.has(STATUS));
+        assertTrue(jsonResponse.has(SESSION_ID));
+        assertTrue(jsonResponse.get(STATUS).asText().equals(SUCCESS_KEY));
+        assertTrue(jsonResponse.get(SESSION_ID).asText().equals(session_id));
+      }
+    });
+  }
+
+  @Test
+  public void testRestLoginForInValidUser() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        _wireMockServer.stubFor(post(urlEqualTo(AZKABAN_LOGIN_URL_SUFFIX))
+            .willReturn(aResponse()
+                .withBody(String.format("{\"error\": \"%s\"}",LOGIN_CREDENTIAL_ERROR_MESSAGE))
+                .withStatus(OK)));
+
+        Map<String, String> params = new HashMap();
+        params.put(USERNAME, "invalid_user");
+        params.put(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL);
+        params.put(PASSWORD, "mock_password");
+
+        JsonNode jsonNode = new ObjectMapper().valueToTree(params);
+        final WS.Response response = WS.url(BASE_URL + REST_LOGIN_ENDPOINT).
+            post(jsonNode).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        final JsonNode jsonResponse = response.asJson();
+        assertTrue(jsonResponse.has(ERROR_KEY));
+        assertTrue(jsonResponse.get(ERROR_KEY).asText().equals(LOGIN_CREDENTIAL_ERROR_MESSAGE));
+      }
+    });
+  }
+
+  @Test
+  public void testRestLoginForIncorrectPassword() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        String session_id = UUID.randomUUID().toString();
+        final String username = "testUser",
+            correctPassword = "correct_password",
+            inCorrectPassword = "incorrect_password";
+
+        //mock response for login request with Incorrect password
+        _wireMockServer.stubFor(post(urlEqualTo(AZKABAN_LOGIN_URL_SUFFIX))
+            .withRequestBody(equalTo(getLoginRequestBody(username, inCorrectPassword)))
+            .willReturn(aResponse()
+                .withBody(String.format("{\"error\": \"%s\"}",LOGIN_CREDENTIAL_ERROR_MESSAGE))
+                .withStatus(OK)));
+
+        //mock response for login request with correct credentials
+        _wireMockServer.stubFor(post(urlEqualTo(AZKABAN_LOGIN_URL_SUFFIX))
+            .withRequestBody(equalTo(getLoginRequestBody(username,  correctPassword)))
+            .willReturn(aResponse()
+                .withBody(String.format("{\"status\": \"success\", \"session.id\": \"%s\"}", session_id))
+                .withStatus(OK)));
+
+        Map<String, String> params = new HashMap();
+        params.put(USERNAME, username);
+        params.put(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL);
+        params.put(PASSWORD, inCorrectPassword);
+
+        JsonNode jsonNode = new ObjectMapper().valueToTree(params);
+        final WS.Response response_1 = WS.url(BASE_URL + REST_LOGIN_ENDPOINT).
+            post(jsonNode).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        final JsonNode jsonResponse = response_1.asJson();
+        assertTrue(jsonResponse.has(ERROR_KEY));
+        assertTrue(jsonResponse.get(ERROR_KEY).asText().equals(LOGIN_CREDENTIAL_ERROR_MESSAGE));
+
+        params.replace(PASSWORD, inCorrectPassword, correctPassword);
+
+        jsonNode = new ObjectMapper().valueToTree(params);
+        final WS.Response response_2 = WS.url(BASE_URL + REST_LOGIN_ENDPOINT).
+            post(jsonNode).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        final JsonNode jsonResponse_2 = response_2.asJson();
+        assertTrue(jsonResponse_2.has(STATUS));
+        assertTrue(jsonResponse_2.has(SESSION_ID));
+        assertTrue(jsonResponse_2.get(STATUS).asText().equals(SUCCESS_KEY));
+        assertTrue(jsonResponse_2.get(SESSION_ID).asText().equals(session_id));
+      }
+    });
+  }
+
+  @Test
+  public void testRestUserAuthorizationForNotValidProject() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        String testAuthorizationUrl = AZKABAN_USER_AUTHORIZATION_URL_SUFFIX +
+            getAuthorizationQueryParamString(TEST_PROJECT_NAME, AUTHORIZATION_AJAX_ENDPOINT, TEST_SESSION_ID1);
+        String projectNotFoundErrorMessage = "project not found";
+        _wireMockServer.stubFor(get(urlEqualTo(testAuthorizationUrl))
+            .willReturn(aResponse()
+                .withBody(String.format("{\"error\": \"%s\"}",projectNotFoundErrorMessage))
+                .withStatus(OK)));
+
+        final WS.Response response = WS.url(BASE_URL + REST_USER_AUTHORIZATION_API_ENDPOINT).
+            setQueryParameter("sessionId", TEST_SESSION_ID1)
+            .setQueryParameter(JOB_DEFITION_ID, TEST_JOB_DEF_ID2)
+            .setQueryParameter(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL).
+            get().get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        final JsonNode jsonResponse = response.asJson();
+        assertTrue(jsonResponse.has(ERROR_KEY));
+        assertEquals(jsonResponse.get(ERROR_KEY).asText(), projectNotFoundErrorMessage);
+      }
+    });
+  }
+
+  @Test
+  public void testRestUserAuthorizationForValidUserAndProject() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        String testAuthorizationUrl = AZKABAN_USER_AUTHORIZATION_URL_SUFFIX +
+            getAuthorizationQueryParamString(TEST_PROJECT_NAME, AUTHORIZATION_AJAX_ENDPOINT, TEST_SESSION_ID1);
+        _wireMockServer.stubFor(get(urlEqualTo(testAuthorizationUrl))
+            .willReturn(aResponse()
+                .withBody(String.format("{\"%s\": \"%s\"}",IS_USER_AUTHORISED_KEY, true))
+                .withStatus(OK)));
+
+        final WS.Response response = WS.url(BASE_URL + REST_USER_AUTHORIZATION_API_ENDPOINT).
+            setQueryParameter("sessionId", TEST_SESSION_ID1)
+            .setQueryParameter(JOB_DEFITION_ID, TEST_JOB_DEF_ID2)
+            .setQueryParameter(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL).
+                get().get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        final JsonNode jsonResponse = response.asJson();
+        assertTrue(jsonResponse.has(IS_USER_AUTHORISED_KEY));
+        assertEquals(jsonResponse.get(IS_USER_AUTHORISED_KEY).asBoolean(), true);
+      }
+    });
+  }
+
+  @Test
+  public void testRestUserAuthorizationWithIllegalArgument() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        final String illegalArgumentErrorMessage = "SessionId or JobDefId or SchedulerUrl cannot be empty";
+        final WS.Response response1 = WS.url(BASE_URL + REST_USER_AUTHORIZATION_API_ENDPOINT).
+            setQueryParameter("sessionId", TEST_SESSION_ID1)
+            .setQueryParameter(JOB_DEFITION_ID, "")
+            .setQueryParameter(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL).
+                get().get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+
+        final WS.Response response2 = WS.url(BASE_URL + REST_USER_AUTHORIZATION_API_ENDPOINT).
+            setQueryParameter("sessionId", null)
+            .setQueryParameter(JOB_DEFITION_ID, TEST_JOB_DEF_ID2)
+            .setQueryParameter(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL).
+                get().get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+
+        final WS.Response response3 = WS.url(BASE_URL + REST_USER_AUTHORIZATION_API_ENDPOINT).
+            setQueryParameter("sessionId", "")
+            .setQueryParameter(JOB_DEFITION_ID, null)
+            .setQueryParameter(SCHEDULER_URL_KEY, "").
+                get().get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+
+        assertEquals(response1.getStatus(), BAD_REQUEST);
+        assertEquals(response2.getStatus(), BAD_REQUEST);
+        assertEquals(response3.getStatus(), BAD_REQUEST);
+        assertEquals(response1.getBody(), illegalArgumentErrorMessage);
+        assertEquals(response2.getBody(), illegalArgumentErrorMessage);
+        assertEquals(response2.getBody(), illegalArgumentErrorMessage);
+      }
+    });
+  }
+
+  @Test
+  public void testRestUserAuthorizationForInvalidJobDefId() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        final String invalidJobDefIdErrorMessage = "Job Definition doesn't contain Project name";
+        final WS.Response response = WS.url(BASE_URL + REST_USER_AUTHORIZATION_API_ENDPOINT).
+            setQueryParameter("sessionId", TEST_SESSION_ID1)
+            .setQueryParameter(JOB_DEFITION_ID, INVALID_JOB_DEF_ID2)
+            .setQueryParameter(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL).
+                get().get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+
+        assertEquals(response.getStatus(), BAD_REQUEST);
+        assertEquals(response.getBody(), invalidJobDefIdErrorMessage);
+      }
+    });
+  }
+
+  @Test
+  public void testRestUserAuthorizationForInternalServerError() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        //This request will result InternalServerError as there is no stub response for User Authorization API call
+        final WS.Response response = WS.url(BASE_URL + REST_USER_AUTHORIZATION_API_ENDPOINT).
+            setQueryParameter("sessionId", TEST_SESSION_ID1)
+            .setQueryParameter(JOB_DEFITION_ID, TEST_JOB_DEF_ID2)
+            .setQueryParameter(SCHEDULER_URL_KEY, FAKE_SCHEDULER_URL).
+                get().get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        assertEquals(response.getStatus(), INTERNAL_SERVER_ERROR);
+      }
+    });
+  }
+
   private void testRestSearchGeneric(Iterator<JsonNode> searchNode) {
     while (searchNode.hasNext()) {
       JsonNode search = searchNode.next();
@@ -1026,5 +1313,13 @@ public class RestAPITest {
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
+
+  private String getLoginRequestBody(String username, String password) {
+    return String.format("password=%s&username=%s", password, username);
+  }
+
+  private String getAuthorizationQueryParamString(String projectName, String ajaxMethodName, String sessionId) {
+    return String.format("?project=%s&ajax=%s&session.id=%s", projectName, ajaxMethodName, sessionId);
   }
 }
