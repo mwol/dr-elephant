@@ -18,13 +18,12 @@ import Ember from 'ember';
 import Scheduler from 'dr-elephant/utils/scheduler';
 
 export default Ember.Route.extend({
+  ajax: Ember.inject.service(),
   beforeModel: function(transition) {
     let loginController = this.controllerFor('login');
     loginController.set('previousTransition', transition);
     this.jobid = transition.queryParams.jobid;
   },
-  ajax: Ember.inject.service(),
-
   model() {
     return Ember.RSVP.hash({
       jobs: this.store.queryRecord('job', {
@@ -89,7 +88,7 @@ export default Ember.Route.extend({
     return authorizationStatus;
   },
   actions: {
-    showRecommendations(jobDefinitionId) {
+    updateShowRecommendationCount(jobDefinitionId) {
       return this.get('ajax').post('/rest/showTuneinParams', {
         contentType: 'application/json; charset=UTF-8',
         data: JSON.stringify({
