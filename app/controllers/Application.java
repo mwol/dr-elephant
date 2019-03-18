@@ -19,14 +19,12 @@ package controllers;
 import com.avaje.ebean.ExpressionList;
 import com.avaje.ebean.Query;
 import com.codahale.metrics.Timer;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.linkedin.drelephant.ElephantContext;
 import com.linkedin.drelephant.analysis.Metrics;
 import com.linkedin.drelephant.analysis.Severity;
 import com.linkedin.drelephant.util.Utils;
-import com.sun.jndi.toolkit.url.Uri;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -34,7 +32,6 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -47,7 +44,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.validation.constraints.NotNull;
 import models.AppHeuristicResult;
 import models.AppResult;
 import models.TuningAlgorithm;
@@ -65,7 +61,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
@@ -77,14 +72,12 @@ import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 
 import org.codehaus.jettison.json.JSONObject;
-import play.Configuration;
 import play.api.templates.Html;
 import play.data.DynamicForm;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
-import views.html.helper.form;
 import views.html.index;
 import views.html.help.metrics.helpRuntime;
 import views.html.help.metrics.helpWaittime;
@@ -111,6 +104,7 @@ import com.linkedin.drelephant.tuning.TuningInput;
 import com.linkedin.drelephant.tuning.engine.SparkConfigurationConstants;
 
 import static com.linkedin.drelephant.util.Utils.*;
+import static controllers.api.v1.JsonKeys.*;
 
 
 public class Application extends Controller {
@@ -130,7 +124,6 @@ public class Application extends Controller {
   public static final String FLOW_DEF_ID = "flow-def-id";
   public static final String FLOW_EXEC_ID = "flow-exec-id";
   public static final String JOB_DEF_ID = "job-def-id";
-  public static final String USERNAME = "username";
   public static final String QUEUE_NAME = "queue-name";
   public static final String SEVERITY = "severity";
   public static final String JOB_TYPE = "job-type";
@@ -142,24 +135,8 @@ public class Application extends Controller {
   public static final String COMPARE_FLOW_ID1 = "flow-exec-id1";
   public static final String COMPARE_FLOW_ID2 = "flow-exec-id2";
   public static final String PAGE = "page";
-  public static final String SESSION_ID_KEY = "session_id";
-  public static final String PROJECT_KEY = "project";
-  public static final String PASSWORD = "password";
-  public static final String ERROR_KEY = "error";
-  public static final String SCHEDULER_URL = "schedulerUrl";
-  public static final String AUTHORIZATION_AJAX_ENDPOINT = "checkForWritePermission";
-  public static final String IS_USER_AUTHORISED_KEY = "hasWritePermission";
-  public static final String AJAX = "ajax";
-  public static final String AZKABAN_AUTHORIZATION_URL_SUFFIX = "/manager";
-  public static final String AZKABAN_AUTHENTICATION_URL_SUFFIX = "/?action=login";
-  public static final String AZKABAN_SESSION_ID_KEY = "session.id";
-  public static final String STATUS = "status";
-  public static final String SUCCESS = "success";
-
 
   private enum Version {OLD,NEW};
-
-
 
   // Configuration properties
   private static final String SEARCH_MATCHES_PARTIAL_CONF = "drelephant.application.search.match.partial";
@@ -171,8 +148,8 @@ public class Application extends Controller {
 
 
   /**
-  * Serves the initial index.html page for the new user interface. This page contains the whole web app
-  */
+   * Serves the initial index.html page for the new user interface. This page contains the whole web app
+   */
   public static Result serveAsset(String path) {
     return ok(index.render());
   }
@@ -236,12 +213,12 @@ public class Application extends Controller {
       throw new RuntimeException(String.format("%s is not a valid scheduler info id field", schedulerIdField));
     }
     AppResult result = AppResult.find
-            .select(String.format("%s, %s", schedulerIdField, schedulerUrlField))
-            .where().like(schedulerIdField, value)
-            .order()
-            .desc(AppResult.TABLE.FINISH_TIME)
-            .setMaxRows(1)
-            .findUnique();
+        .select(String.format("%s, %s", schedulerIdField, schedulerUrlField))
+        .where().like(schedulerIdField, value)
+        .order()
+        .desc(AppResult.TABLE.FINISH_TIME)
+        .setMaxRows(1)
+        .findUnique();
     if (result != null) {
       if (schedulerIdField.equals(AppResult.TABLE.FLOW_DEF_ID)) {
         return new IdUrlPair(result.flowDefId, result.flowDefUrl);
@@ -351,9 +328,9 @@ public class Application extends Controller {
       return ok(searchPage.render(null, jobDetails.render(null)));
     } else {
       List<AppResult> resultsToDisplay = results.subList((currentPage - paginationBarStartIndex) * pageLength,
-              Math.min(results.size(), (currentPage - paginationBarStartIndex + 1) * pageLength));
+          Math.min(results.size(), (currentPage - paginationBarStartIndex + 1) * pageLength));
       return ok(searchPage.render(paginationStats, searchResults.render(
-              String.format("Results: Showing %,d of %,d", resultsToDisplay.size(), query.findRowCount()), resultsToDisplay)));
+          String.format("Results: Showing %,d of %,d", resultsToDisplay.size(), query.findRowCount()), resultsToDisplay)));
     }
   }
 
@@ -691,8 +668,8 @@ public class Application extends Controller {
         return ok(flowHistoryPage.render(flowDefPair.getId(), graphType,
             flowHistoryResults.render(flowDefPair, executionMap, idPairToJobNameMap, flowExecTimeList)));
       } else if (graphType.equals("resources") || graphType.equals("time")) {
-          return ok(flowHistoryPage.render(flowDefPair.getId(), graphType, flowMetricsHistoryResults
-              .render(flowDefPair, graphType, executionMap, idPairToJobNameMap, flowExecTimeList)));
+        return ok(flowHistoryPage.render(flowDefPair.getId(), graphType, flowMetricsHistoryResults
+            .render(flowDefPair, graphType, executionMap, idPairToJobNameMap, flowExecTimeList)));
       }
     } else {
       if (graphType.equals("heuristics")) {
@@ -704,7 +681,7 @@ public class Application extends Controller {
               + " graphs are not supported for spark right now");
         } else {
           return ok(oldFlowHistoryPage.render(flowDefPair.getId(), graphType, oldFlowMetricsHistoryResults
-                  .render(flowDefPair, graphType, executionMap, idPairToJobNameMap, flowExecTimeList)));
+              .render(flowDefPair, graphType, executionMap, idPairToJobNameMap, flowExecTimeList)));
         }
       }
     }
@@ -822,8 +799,8 @@ public class Application extends Controller {
         return ok(jobHistoryPage.render(jobDefPair.getId(), graphType,
             jobHistoryResults.render(jobDefPair, executionMap, maxStages, flowExecTimeList)));
       } else if (graphType.equals("resources") || graphType.equals("time")) {
-          return ok(jobHistoryPage.render(jobDefPair.getId(), graphType,
-              jobMetricsHistoryResults.render(jobDefPair, graphType, executionMap, maxStages, flowExecTimeList)));
+        return ok(jobHistoryPage.render(jobDefPair.getId(), graphType,
+            jobMetricsHistoryResults.render(jobDefPair, graphType, executionMap, maxStages, flowExecTimeList)));
       }
     } else {
       if (graphType.equals("heuristics")) {
@@ -1608,7 +1585,7 @@ public class Application extends Controller {
       }
       SimpleDateFormat tf = null ;
       if( startTime.length() == 10 ) {
-         tf = new SimpleDateFormat("yyyy-MM-dd");
+        tf = new SimpleDateFormat("yyyy-MM-dd");
       }
       else {
         tf = new SimpleDateFormat("yyyy-MM-dd-HH");
@@ -1934,7 +1911,7 @@ public class Application extends Controller {
     try {
       response = authenticateUser(username, password, schedulerUrl + AZKABAN_AUTHENTICATION_URL_SUFFIX);
     } catch (Exception ex) {
-      logger.error("Some error occured while authenticating the user " + ex);
+      logger.error("Some error occured while authenticating the user ", ex);
       return internalServerError();
     }
     return ok(Json.toJson(response));
@@ -2128,7 +2105,7 @@ public class Application extends Controller {
     }
     return "NONE";
   }
-    private static Map<String, Double> getSparkParamsMap(Long jobSuggestedParamSetId) {
+  private static Map<String, Double> getSparkParamsMap(Long jobSuggestedParamSetId) {
     logger.debug("Fetching params for JobSuggestedParamSet id: " + jobSuggestedParamSetId);
     List<JobSuggestedParamValue> paramValues = JobSuggestedParamValue.find.select("*")
         .where()
@@ -2194,7 +2171,7 @@ public class Application extends Controller {
     if (!isSet(url)) {
       throw new IllegalArgumentException("URL cannot be NULL for POST call");
     }
-    logger.info("Making aa POST call to URL " + url);
+    logger.info("Making a POST call to URL " + url);
     List<NameValuePair> postEntity = new ArrayList();
     if (postParams != null) {
       for (Map.Entry<String, String> entry : postParams.entrySet()) {

@@ -30,6 +30,7 @@ import views.html.results.searchResults;
 import java.util.HashMap;
 import java.util.Map;
 
+import static controllers.api.v1.JsonKeys.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -86,7 +87,7 @@ public class ApplicationTest {
     assertTrue(sql2.contains("from yarn_app_result t0 order by t0.finish_time desc"));
 
     // Query by username
-    searchParams.put(Application.USERNAME, "username");
+    searchParams.put(USERNAME, "username");
     query2 = Application.generateSearchQuery("*", searchParams);
     assertNotNull(query2.findList());
     sql2 = query2.getGeneratedSql();

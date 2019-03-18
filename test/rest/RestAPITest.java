@@ -56,10 +56,10 @@ import play.test.Helpers;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static common.DBTestUtil.*;
 import static common.TestConstants.*;
-import static controllers.Application.*;
 import static controllers.Application.BAD_REQUEST;
 import static controllers.Application.INTERNAL_SERVER_ERROR;
 import static controllers.Application.OK;
+import static controllers.api.v1.JsonKeys.*;
 import static org.junit.Assert.*;
 import static play.test.Helpers.*;
 

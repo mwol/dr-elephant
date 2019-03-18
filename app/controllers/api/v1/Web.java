@@ -16,13 +16,12 @@
 
 package controllers.api.v1;
 
-import com.avaje.ebean.Query;
-import com.avaje.ebean.Junction;
-import com.avaje.ebean.ExpressionList;
-import com.avaje.ebean.SqlRow;
-import com.avaje.ebean.SqlQuery;
 import com.avaje.ebean.Ebean;
-
+import com.avaje.ebean.ExpressionList;
+import com.avaje.ebean.Junction;
+import com.avaje.ebean.Query;
+import com.avaje.ebean.SqlQuery;
+import com.avaje.ebean.SqlRow;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -37,21 +36,20 @@ import com.linkedin.drelephant.exceptions.HadoopException;
 import com.linkedin.drelephant.security.HadoopSecurity;
 import com.linkedin.drelephant.util.InfoExtractor;
 import com.linkedin.drelephant.util.Utils;
+import controllers.Application;
 import controllers.ControllerUtil;
 import controllers.IdUrlPair;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Arrays;
-
 import javax.naming.AuthenticationException;
 import models.AppHeuristicResult;
 import models.AppHeuristicResultDetails;
@@ -62,7 +60,6 @@ import play.data.DynamicForm;
 import play.data.Form;
 import play.mvc.Controller;
 import play.mvc.Result;
-import controllers.Application;
 
 
 /**
