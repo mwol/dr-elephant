@@ -16,9 +16,6 @@
 
 package common;
 
-import scala.Int;
-
-
 public class TestConstants {
 
   // Test data constants
@@ -120,7 +117,6 @@ public class TestConstants {
   public static final String JSON_PARTICLE_FITNESS_KEY = "fitness";
 
   //Mock Scheduler server constants
-  public static final String MOCK_SCHEDULER_HOST = "localhost";
   public static final int MOCK_SCHEDULER_PORT = 9191;
 
 
@@ -135,7 +131,6 @@ public class TestConstants {
   public static final String JOB_DEFITION_ID = "jobDefId";
   public static final String TEST_PROJECT_NAME = "auth_test_project";
   public static final String TEST_SESSION_ID1 = "48fe6ae4-a3fc-4e6f-bc0a-6f6ac3165673";
-  public static final String TEST_SESSION_ID2 = "8bf3bfe1-5a22-4b52-8ced-544ff4b1e9ae";
   public static final String TEST_JOB_DEF_ID2 =
       "https://localhost:9191/manager?project=auth_test_project&flow=test_flow&job=sample_job";
   public static final String INVALID_JOB_DEF_ID2 =

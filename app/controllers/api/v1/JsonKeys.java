@@ -93,4 +93,18 @@ public class JsonKeys {
   public static final String YARN_APP_HEURISTIC_RESULTS = "yarnappheuristicresults";
   public static final String APPLICATIONS = "applications";
   public static final String TOTAL_APPLICATIONS = "totalapplications";
+
+  // Authenication and Authorization
+  public static final String SESSION_ID_KEY = "session_id";
+  public static final String PROJECT_KEY = "project";
+  public static final String PASSWORD = "password";
+  public static final String ERROR_KEY = "error";
+  public static final String SCHEDULER_URL = "schedulerUrl";
+  public static final String AUTHORIZATION_AJAX_ENDPOINT = "checkForWritePermission";
+  public static final String IS_USER_AUTHORISED_KEY = "hasWritePermission";
+  public static final String AJAX = "ajax";
+  public static final String AZKABAN_AUTHORIZATION_URL_SUFFIX = "/manager";
+  public static final String AZKABAN_AUTHENTICATION_URL_SUFFIX = "/?action=login";
+  public static final String AZKABAN_SESSION_ID_KEY = "session.id";
+  public static final String SUCCESS = "success";
 }
