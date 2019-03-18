@@ -20,19 +20,14 @@ import com.avaje.ebean.Expr;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.linkedin.drelephant.ElephantContext;
-import com.linkedin.drelephant.tuning.Constant.AlgotihmType;
-import com.linkedin.drelephant.tuning.Constant.TuningType;
 import com.linkedin.drelephant.tuning.obt.OptimizationAlgoFactory;
 import com.linkedin.drelephant.tuning.obt.ParameterGenerateManagerOBT;
 import com.linkedin.drelephant.util.Utils;
-
 import controllers.AutoTuningMetricsController;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import models.FlowDefinition;
 import models.FlowExecution;
 import models.JobDefinition;
@@ -40,14 +35,12 @@ import models.JobExecution;
 import models.JobExecution.ExecutionState;
 import models.JobSuggestedParamSet;
 import models.JobSuggestedParamSet.ParamSetStatus;
-import models.TuningAlgorithm.JobType;
 import models.JobSuggestedParamValue;
 import models.TuningAlgorithm;
 import models.TuningAlgorithm.OptimizationAlgo;
 import models.TuningJobDefinition;
 import models.TuningJobExecutionParamSet;
 import models.TuningParameter;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;

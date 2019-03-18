@@ -67,7 +67,7 @@ public class AutoTuningFlow {
   private void createFitnessManagersPipeline() {
     List<Manager> fitnessManagers = new ArrayList<Manager>();
     for (Constant.TuningType tuningType : Constant.TuningType.values()) {
-      for (Constant.AlgotihmType algotihmType : Constant.AlgotihmType.values()) {
+      for (Constant.AlgorithmType algotihmType : Constant.AlgorithmType.values()) {
         Manager manager = ManagerFactory.getManager(tuningType.name(), algotihmType.name(), null,
             AbstractFitnessManager.class.getSimpleName());
         if (manager != null) {
@@ -83,7 +83,7 @@ public class AutoTuningFlow {
   private void createTuningTypeManagersPipeline() {
     List<Manager> algorithmManagers = new ArrayList<Manager>();
     for (Constant.TuningType tuningType : Constant.TuningType.values()) {
-      for (Constant.AlgotihmType algotihmType : Constant.AlgotihmType.values()) {
+      for (Constant.AlgorithmType algotihmType : Constant.AlgorithmType.values()) {
         for (Constant.ExecutionEngineTypes executionEngineTypes : Constant.ExecutionEngineTypes.values()) {
           Manager manager =
               ManagerFactory.getManager(tuningType.name(), algotihmType.name(), executionEngineTypes.name(),

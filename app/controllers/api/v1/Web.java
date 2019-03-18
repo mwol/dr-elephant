@@ -836,7 +836,7 @@ public class Web extends Controller {
 
   /**
    *
-   * @param jobId
+   * @param jobid
    * @return
    * <pre>
    **{
@@ -1062,7 +1062,7 @@ public class Web extends Controller {
   }
 
   /**
-   * @param applicationId
+   * @param applicationid
    * @return
    * <pre>
    *  {

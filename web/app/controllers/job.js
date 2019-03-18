@@ -19,12 +19,24 @@ import Ember from 'ember';
 export default Ember.Controller.extend({
   queryParams: ['jobid'],
   jobid: null,
-  showTuneinRecommendations: false,
+  currentIterationCount: null,
 
   actions: {
     showRecommendation(jobDefinitionId) {
-      this.set("showTuneinRecommendations", true),
       this.send("showRecommendations", jobDefinitionId);
+    },
+    autoTuningToggle(e) {
+      this.set('model.tunein.autoApply', e.target.checked);
+    },
+    updateIterationCount() {
+      var currentIterationCount = this.get('currentIterationCount');
+      var isIterationCountChanged =
+          (currentIterationCount != this.get('model.tunein.iterationCount')) ? true : false;
+      console.log("iterationCount " + isIterationCountChanged + " " +
+          this.get('model.tunein.iterationCount'))
+    },
+    submit(job, tunein) {
+      this.send("submitUserChanges",tunein, job);
     }
   }
 });

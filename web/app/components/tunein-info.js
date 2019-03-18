@@ -21,7 +21,16 @@ export default Ember.Component.extend({
   actions: {
     showTuneinDetails() {
       this.set("showTuneinRecommendations", true),
-      this.sendAction('action', this.get('param'));
+      this.sendAction('updateRecommendationCountAction', this.get('jobDefId'));
+    },
+    submit() {
+      this.sendAction('submitAction', this.get('tunein'), this.get('job'));
+    },
+    iterationCountChange() {
+      this.sendAction('updateIterationCountAction');
+    },
+    tuneinToggle(e) {
+      this.sendAction("tuneinToggleAction", e);
     }
-  }
+   }
 });
