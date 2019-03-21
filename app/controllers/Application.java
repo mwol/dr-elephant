@@ -19,12 +19,24 @@ package controllers;
 import com.avaje.ebean.ExpressionList;
 import com.avaje.ebean.Query;
 import com.codahale.metrics.Timer;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.linkedin.drelephant.ElephantContext;
 import com.linkedin.drelephant.analysis.Metrics;
 import com.linkedin.drelephant.analysis.Severity;
+import com.linkedin.drelephant.tuning.AutoTuningAPIHelper;
+import com.linkedin.drelephant.tuning.Constant.AlgorithmType;
+import com.linkedin.drelephant.tuning.Constant.TuningType;
+import com.linkedin.drelephant.tuning.TuningInput;
+import com.linkedin.drelephant.tuning.engine.SparkConfigurationConstants;
 import com.linkedin.drelephant.util.Utils;
+import controllers.api.v1.JsonKeys;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -46,12 +58,12 @@ import java.util.TreeSet;
 
 import models.AppHeuristicResult;
 import models.AppResult;
-import models.TuningAlgorithm;
-import models.TuningAlgorithm.JobType;
 import models.JobDefinition;
 import models.JobExecution;
 import models.JobSuggestedParamSet;
 import models.JobSuggestedParamValue;
+import models.TuningAlgorithm;
+import models.TuningAlgorithm.JobType;
 import models.TuningJobDefinition;
 import models.TuningJobExecutionParamSet;
 import models.TuningParameter;
@@ -59,7 +71,6 @@ import org.apache.commons.collections.map.ListOrderedMap;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -70,7 +81,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
-
 import org.codehaus.jettison.json.JSONObject;
 import play.api.templates.Html;
 import play.data.DynamicForm;
@@ -80,8 +90,8 @@ import play.mvc.Controller;
 import play.mvc.Result;
 import views.html.index;
 import views.html.help.metrics.helpRuntime;
-import views.html.help.metrics.helpWaittime;
 import views.html.help.metrics.helpUsedResources;
+import views.html.help.metrics.helpWaittime;
 import views.html.help.metrics.helpWastedResources;
 import views.html.page.comparePage;
 import views.html.page.flowHistoryPage;
@@ -93,15 +103,7 @@ import views.html.page.oldHelpPage;
 import views.html.page.oldJobHistoryPage;
 import views.html.page.searchPage;
 import views.html.results.*;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.linkedin.drelephant.tuning.AutoTuningAPIHelper;
-import com.linkedin.drelephant.tuning.TuningInput;
-import com.linkedin.drelephant.tuning.engine.SparkConfigurationConstants;
+import views.html.results.jobDetails;
 
 import static com.linkedin.drelephant.util.Utils.*;
 import static controllers.api.v1.JsonKeys.*;
@@ -724,9 +726,9 @@ public class Application extends Controller {
     if (!isSet(partialJobDefId)) {
       if (version.equals(Version.NEW)) {
         return ok(
-            jobHistoryPage.render(partialJobDefId, graphType, jobHistoryResults.render(null, null, -1, null)));
+            jobHistoryPage.render(partialJobDefId, graphType, views.html.results.jobHistoryResults.render(null, null, -1, null)));
       } else {
-        return ok(oldJobHistoryPage.render(partialJobDefId, graphType, oldJobHistoryResults.render(null, null, -1, null)));
+        return ok(oldJobHistoryPage.render(partialJobDefId, graphType, views.html.results.oldJobHistoryResults.render(null, null, -1, null)));
       }
     }
     IdUrlPair jobDefPair = bestSchedulerInfoMatchGivenPartialId(partialJobDefId, AppResult.TABLE.JOB_DEF_ID);
@@ -1757,7 +1759,7 @@ public class Application extends Controller {
    *}
    **/
   public static Result getTuningParameter(String jobId) {
-    logger.info("Getting Tuning Parameters for " + jobId);
+    logger.info("Getting TuneIn Parameters for " + jobId);
     JsonObject parent = new JsonObject();
     JsonObject tuneIn = new JsonObject();
     try {
@@ -1767,11 +1769,11 @@ public class Application extends Controller {
           .findUnique();
       Integer jobDefinitionId = 0;
       if (jobExecution == null) {
-        throw new Exception("No Job Execution enrty found for job execution: " + jobId);
+        throw new Exception("No Job Execution entry found for job execution: " + jobId);
       } else {
         jobDefinitionId = jobExecution.job.id;
       }
-      logger.info("Job DefinitionId ::  " + jobDefinitionId);
+      logger.info("Job DefinitionId:  " + jobDefinitionId);
       JobSuggestedParamSet jobSuggestedParamSet = JobSuggestedParamSet.find.select("*")
           .where()
           .eq(JobSuggestedParamSet.TABLE.jobDefinition + "." + JobDefinition.TABLE.id , jobDefinitionId)
@@ -1797,9 +1799,9 @@ public class Application extends Controller {
           .order()
           .desc(TuningJobDefinition.TABLE.createdTs)
           .findUnique();
-      logger.info("JobSuggestedParamSet:: " + jobSuggestedParamSet.id);
+      logger.info("Respective JobSuggestedParamSet: " + jobSuggestedParamSet.id);
       if (userSuggestedParamSet == null) {
-        logger.info("No user suggested param set for jobDefinitionId:" + jobDefinitionId);
+        logger.info("No user suggested param set for jobDefinitionId: "  + jobDefinitionId);
       } else {
         logger.info("User suggested param set: " + userSuggestedParamSet.id);
       }
@@ -1807,34 +1809,33 @@ public class Application extends Controller {
       Boolean autoApply = tuningJobDefinition.autoApply;
       TuningAlgorithm tuningAlgorithm = jobSuggestedParamSet.tuningAlgorithm;
       List<TuningParameter> parametersList = getTuningParametersListForJob(tuningAlgorithm.id);
-      logger.info("Tuning Algorithm id: " + tuningAlgorithm.id);
       JsonArray tuningParameters = getTuningParameterDetails(parametersList, jobSuggestedParamSet, userSuggestedParamSet);
       String currentTuningAlgorithm = getCurrentTuningAlgorithmName(tuningAlgorithm);
       JsonArray tuningAlgorithmList = new JsonArray();
-      tuneIn.addProperty("id", jobId);
-      tuneIn.addProperty("jobDefinitionId", jobDefinitionId);
+      tuneIn.addProperty(ID, jobId);
+      tuneIn.addProperty(JOB_DEFINTITION_ID, jobDefinitionId);
       //Two tuning types {HBT, OBT}
       JsonObject hbtAlgo = new JsonObject();
-      hbtAlgo.addProperty("name", "HBT");
+      hbtAlgo.addProperty(NAME, TuningType.HBT.name());
       JsonObject obtAlgo = new JsonObject();
-      obtAlgo.addProperty("name", "OBT");
+      obtAlgo.addProperty(NAME, TuningType.OBT.name());
       tuningAlgorithmList.add(hbtAlgo);
       tuningAlgorithmList.add(obtAlgo);
-      tuneIn.addProperty("jobSuggestedParamSetId", jobSuggestedParamSet.id);
-      tuneIn.addProperty("tuningAlgorithmId", tuningAlgorithm.id);
-      tuneIn.addProperty("autoApply", autoApply);
-      tuneIn.addProperty("tuningAlgorithm", currentTuningAlgorithm);
-      tuneIn.addProperty("reasonForTuningDisable", reasonForDisablingTuning(tuningJobDefinition));
-      tuneIn.add("tuningAlgorithmList", tuningAlgorithmList);
-      tuneIn.addProperty("iterationCount",tuningJobDefinition.numberOfIterations);
-      tuneIn.add("tuningParameters", tuningParameters);
-      parent.add("tunein", tuneIn);
-      logger.debug("tuneIn Json: " + tuneIn);
+      tuneIn.addProperty(JOB_SUGGESTED_PARAM_SET_ID, jobSuggestedParamSet.id);
+      tuneIn.addProperty(TUNING_ALGORITHM_ID, tuningAlgorithm.id);
+      tuneIn.addProperty(AUTO_APPLY, autoApply);
+      tuneIn.addProperty(TUNING_ALGORITH, currentTuningAlgorithm);
+      tuneIn.addProperty(REASON_TO_DISABLE_TUNING, reasonForDisablingTuning(tuningJobDefinition));
+      tuneIn.add(TUNING_ALGORITHM_LIST, tuningAlgorithmList);
+      tuneIn.addProperty(ITERATION_COUNT,tuningJobDefinition.numberOfIterations);
+      tuneIn.add(TUNING_PARAMETERS, tuningParameters);
+      parent.add(TUNEIN, tuneIn);
+      logger.debug("TuneIn Json: " + tuneIn);
       return ok(new Gson().toJson(parent));
     } catch (Exception ex) {
       logger.error(ex);
-      tuneIn.addProperty("jobSuggestedParamSetId", "null");
-      parent.add("tunein", tuneIn);
+      tuneIn.addProperty(JOB_SUGGESTED_PARAM_SET_ID, "null");
+      parent.add(TUNEIN, tuneIn);
       return ok(new Gson().toJson(parent));
     }
   }
@@ -1901,7 +1902,6 @@ public class Application extends Controller {
     final String password = form.get(PASSWORD);
     final String schedulerUrl = form.get(SCHEDULER_URL);
     logger.info("Authenticating user: " + username + " " + schedulerUrl);
-    logger.info(isSet(username) + " " + isSet(password) + " " + isSet(schedulerUrl));
     if (!isSet(username) || !isSet(password)) {
       return badRequest("Username or Password cannot be empty");
     } else if (!isSet(schedulerUrl)) {
@@ -1931,6 +1931,7 @@ public class Application extends Controller {
    *}
    **/
   public static Result getUserAuthorizationStatus(String sessionId, String jobDefId, String schedulerUrl) {
+    logger.info("Checking for user authorization");
     if (!isSet(sessionId) || !isSet(jobDefId) || !isSet(schedulerUrl)) {
       return badRequest("SessionId or JobDefId or SchedulerUrl cannot be empty");
     }
@@ -1943,7 +1944,6 @@ public class Application extends Controller {
       List<NameValuePair> jobDefQueryParams = URLEncodedUtils.parse(new java.net.URI(jobDefId), "UTF-8");
       for (NameValuePair param: jobDefQueryParams) {
         if (param.getName().equals(PROJECT_KEY)) {
-          logger.info(PROJECT_KEY + " " + param.getValue());
           queryParams.put(PROJECT_KEY, param.getValue());
           break;
         }
@@ -1966,6 +1966,77 @@ public class Application extends Controller {
       return internalServerError("Something went wrong while authorizing the user");
     }
     return ok(Json.toJson(responseMap));
+  }
+
+  /** Rest API implementation for updating the TuneIn details like Tuning Param's value, AutoApply or #iterations
+   *
+   * @result JSON containing updated Tuning Params if params are changed and current value of AutoApply amd iterationCount
+   *
+   * {"updatedParamDetails":
+   *    {
+   *      "userSuggestedParamSetId":1501,
+   *      "tuningParameters":
+   *          [{
+   *            "paramId":21,
+   *           "name":"spark.driver.memory",
+   *           "currentParamValue":1512.04
+   *          },
+   *
+   *          {
+   *             "paramId":22,
+   *             "name":"spark.executor.cores",
+   *             "currentParamValue":90.0
+   *           },
+   *           {
+   *              "paramId":20,
+   *              "name":"spark.executor.memory",
+   *              "currentParamValue":7949.0
+   *            },
+   *            {
+   *               "paramId":23,
+   *               "name":"spark.memory.fraction",
+   *               "currentParamValue":0.14
+   *             }
+   *           ]
+   *    },
+   *    "autoApply":true,
+   *    "iterationCount":20
+   *  }
+   **/
+  public static Result updateTuneinDetails() {
+    logger.info("Updating TuneIn details");
+    JsonNode requestBodyRoot = request().body().asJson();
+    //Tunein model
+    JsonNode tunein = requestBodyRoot.path(TUNEIN);
+    //Job model
+    JsonNode job = requestBodyRoot.path(JOB);
+    //Job Parameters
+    JsonNode tuningParameters = tunein.path(TUNING_PARAMETERS);
+    Boolean autoApply = tunein.path(AUTO_APPLY).asBoolean();
+    Integer jobDefinitionId = tunein.path(JOB_DEFINTITION_ID).asInt();
+    String jobType = job.path(JsonKeys.JOB_TYPE).asText().toUpperCase();
+    int iterationCount = tunein.path(ITERATION_COUNT).asInt();
+    JsonObject parent = new JsonObject();
+    //Todo: Add the param and other details' validation
+    try {
+      if (isJobParamUpdated(tuningParameters)) {
+        logger.info("Job Params are changed for jobDefinitionId " + jobDefinitionId);
+        parent.add(UPDATED_PARAM_DETAILS, updateJobParams(tunein, jobType));
+      }
+      TuningJobDefinition tuningJobDefinition = TuningJobDefinition.find.where()
+          .eq(TuningJobDefinition.TABLE.job + '.' + JobDefinition.TABLE.id, jobDefinitionId)
+          .findUnique();
+      updateAutoApplyProperty(tuningJobDefinition, autoApply);
+      updateIterationCount(tuningJobDefinition, iterationCount);
+      tuningJobDefinition.update();
+      parent.addProperty(AUTO_APPLY, tuningJobDefinition.autoApply);
+      parent.addProperty(ITERATION_COUNT, tuningJobDefinition.numberOfIterations);
+    } catch (Exception ex) {
+      logger.error("Something went wrong while updating Tunein details", ex);
+      return internalServerError();
+    }
+    logger.info("TuneIn update was successful");
+    return ok(new Gson().toJson(parent));
   }
 
   /**
@@ -2048,7 +2119,8 @@ public class Application extends Controller {
     return parametersList;
   }
 
-  private static JsonArray getTuningParameterDetails(List<TuningParameter> parametersList, JobSuggestedParamSet jobSuggestedParamSet, JobSuggestedParamSet userSuggestedParamSet) {
+  private static JsonArray getTuningParameterDetails(List<TuningParameter> parametersList,
+      JobSuggestedParamSet jobSuggestedParamSet, JobSuggestedParamSet userSuggestedParamSet) {
     JsonArray tuningParameters = new JsonArray();
     DecimalFormat truncateParamValueFormat = new DecimalFormat("#.##");
     for (TuningParameter tuningParam : parametersList) {
@@ -2074,24 +2146,30 @@ public class Application extends Controller {
         continue;
       }
       JsonObject param = new JsonObject();
-      param.addProperty("paramId",id);
-      param.addProperty("name", paramName);
-      param.addProperty("jobSuggestedParamValue",  truncateParamValueFormat.format(jobSuggestedParameterValue.paramValue));
+      param.addProperty(PARAM_ID,id);
+      param.addProperty(NAME, paramName);
+      param.addProperty(JOB_SUGGESTED_PARAM_VALUE,  truncateParamValueFormat.format(jobSuggestedParameterValue.paramValue));
       if (userSuggestedParameterValue != null) {
-        param.addProperty("userSuggestedParamValue",  truncateParamValueFormat.format(userSuggestedParameterValue.paramValue));
-        param.addProperty("currentParamValue",  truncateParamValueFormat.format(userSuggestedParameterValue.paramValue));
+        param.addProperty(USER_SUGGESTED_PARAM_VALUE,  truncateParamValueFormat.format(userSuggestedParameterValue.paramValue));
+        param.addProperty(CURRENT_PARAM_VALUE,  truncateParamValueFormat.format(userSuggestedParameterValue.paramValue));
       } else {
-        param.addProperty("userSuggestedParamValue",  truncateParamValueFormat.format(jobSuggestedParameterValue.paramValue));
-        param.addProperty("currentParamValue",  truncateParamValueFormat.format(jobSuggestedParameterValue.paramValue));
+        param.addProperty(USER_SUGGESTED_PARAM_VALUE,  truncateParamValueFormat.format(jobSuggestedParameterValue.paramValue));
+        param.addProperty(CURRENT_PARAM_VALUE,  truncateParamValueFormat.format(jobSuggestedParameterValue.paramValue));
       }
       tuningParameters.add(param);
-      logger.info("param: " + tuningParameters);
     }
     return tuningParameters;
   }
 
   private static String getCurrentTuningAlgorithmName(TuningAlgorithm tuningAlgorithm) {
-    return tuningAlgorithm.optimizationAlgo.name().contains("PSO") ? "OBT" : "HBT";
+    return tuningAlgorithm.optimizationAlgo.name().contains(AlgorithmType.PSO_IPSO.toString()) ? TuningType.OBT.name()
+        : TuningType.HBT.name();
+  }
+
+  private static String getOptimizationAlgo(String tuningAlgorithmName) {
+    //Currently OBT's default optimization Algo is PSO_IPSO
+    return tuningAlgorithmName.contains(TuningType.OBT.name()) ? AlgorithmType.PSO_IPSO.name() :
+        AlgorithmType.HBT.name();
   }
 
   private static String reasonForDisablingTuning(TuningJobDefinition tuningJobDefinition) {
@@ -2105,6 +2183,7 @@ public class Application extends Controller {
     }
     return "NONE";
   }
+
   private static Map<String, Double> getSparkParamsMap(Long jobSuggestedParamSetId) {
     logger.debug("Fetching params for JobSuggestedParamSet id: " + jobSuggestedParamSetId);
     List<JobSuggestedParamValue> paramValues = JobSuggestedParamValue.find.select("*")
@@ -2112,7 +2191,7 @@ public class Application extends Controller {
         .eq(JobSuggestedParamValue.TABLE.jobSuggestedParamSet + '.' + JobSuggestedParamSet.TABLE.id,
             jobSuggestedParamSetId)
         .findList();
-    Map<String, Double> paramValueMap = new HashMap<String, Double>();
+    Map<String, Double> paramValueMap = new HashMap();
     DecimalFormat truncateParamValueFormat = new DecimalFormat("#.##");
     for (JobSuggestedParamValue param: paramValues) {
       paramValueMap.put(param.tuningParameter.paramName,
@@ -2182,5 +2261,148 @@ public class Application extends Controller {
     httpPost.setEntity(new UrlEncodedFormEntity(postEntity));
     CloseableHttpClient client = HttpClients.createDefault();
     return client.execute(httpPost);
+  }
+
+  /**
+   * Returns a Boolean value, true is user changed the tuning parameters' values else return false
+   * @return  The Boolean type
+   */
+  private static Boolean isJobParamUpdated(JsonNode tuningParameters) {
+    boolean isParamChanged = false;
+    for(JsonNode parameter: tuningParameters) {
+      String paramName = parameter.path(NAME).asText();
+      // this is the currently saved value in the system for the param
+      Double currentValue = parameter.path(CURRENT_PARAM_VALUE).asDouble();
+      // this is the param value suggested by user and from now on Job will be executed with this param value
+      Double userSuggestedParamValue = parameter.path(USER_SUGGESTED_PARAM_VALUE).asDouble();
+      if(!userSuggestedParamValue.equals(currentValue) ) {
+        if (logger.isDebugEnabled()) {
+          logger.debug(String.format("Param %s is changed from %s to %s", paramName, currentValue,
+              userSuggestedParamValue));
+        }
+        isParamChanged = true;
+        // If any one of the param is modified then we need to create new Param set for all the params
+        break;
+      }
+    }
+    return isParamChanged;
+  }
+
+  /**
+   * Returns a JsonObject with the updated Tuning Params and the newly created JobSuggestedParamSet Id
+   * @return JsonObject - Json containing the updated param values and
+   *            the user_suggested_param_set id
+   */
+  private static JsonObject updateJobParams(JsonNode tunein, String jobType) {
+    Integer jobDefinitionId = tunein.path(JOB_DEFINTITION_ID).asInt();
+    String optimizationAlgo = getOptimizationAlgo(tunein.path(TUNING_ALGORITH).asText());
+    JsonNode tuningParameters = tunein.path(TUNING_PARAMETERS);
+    JobDefinition jobDefinition = JobDefinition.find.select("*")
+        .where()
+        .eq(JobDefinition.TABLE.id, jobDefinitionId)
+        .findUnique();
+    TuningAlgorithm tuningAlgorithm = TuningAlgorithm.find.select("*")
+        .where()
+        .eq(TuningAlgorithm.TABLE.jobType, jobType)
+        .eq(TuningAlgorithm.TABLE.optimizationAlgo, optimizationAlgo)
+        .findUnique();
+    //Creating new param set for the user suggested param values
+    JobSuggestedParamSet userSuggestedParamSet = createUserSuggestedParamSet(jobDefinition, tuningAlgorithm);
+    //Creating new parameter values suggested by the user for the new Param set
+    JsonObject paramDetails = new JsonObject();
+    JsonArray updatedTuningParams = createUserSuggestedParamValue(tuningParameters, userSuggestedParamSet);
+    paramDetails.addProperty(USER_SUGGESTED_PARAM_SET_ID, userSuggestedParamSet.id);
+    paramDetails.add(TUNING_PARAMETERS, updatedTuningParams);
+    return paramDetails;
+  }
+
+  /**
+   * Returns a JobSuggestedParamSet which is created in the database when the user changed the tuning parameters' values
+   * @return The JobSuggestedParamSet
+   */
+  private static JobSuggestedParamSet createUserSuggestedParamSet(JobDefinition jobDefinition,
+      TuningAlgorithm tuningAlgorithm) {
+    JobSuggestedParamSet userSuggestedParamSet = new JobSuggestedParamSet();
+    userSuggestedParamSet.jobDefinition = jobDefinition;
+    userSuggestedParamSet.tuningAlgorithm = tuningAlgorithm;
+    userSuggestedParamSet.paramSetState = JobSuggestedParamSet.ParamSetStatus.CREATED;
+    userSuggestedParamSet.isParamSetDefault = false;
+    userSuggestedParamSet.isParamSetBest = false;
+    userSuggestedParamSet.isParamSetSuggested = false;
+    userSuggestedParamSet.areConstraintsViolated = false;
+    userSuggestedParamSet.isManuallyOverridenParameter = true;
+    userSuggestedParamSet.save();
+    logger.info("Latest created userSuggestedParamSetId: " + userSuggestedParamSet.id);
+    discardPreviousCreatedParamSet(jobDefinition.id,userSuggestedParamSet.id);
+    return userSuggestedParamSet;
+  }
+
+  /**
+   * Function to discard the existing JobSuggestedParamSet till now
+   */
+  private static void discardPreviousCreatedParamSet(int jobDefinitionId, Long userCreatedParamSetId) {
+    List<JobSuggestedParamSet> jobSuggestedParamSetList = JobSuggestedParamSet.find.select("*")
+        .where()
+        .eq(JobSuggestedParamSet.TABLE.jobDefinition + "." + JobDefinition.TABLE.id, jobDefinitionId)
+        .ne(JobSuggestedParamSet.TABLE.id, userCreatedParamSetId)
+        .findList();
+    //Marking all the ParamSetStatus as discarded except the latest userSuggestedParamSet
+    for (JobSuggestedParamSet paramSet : jobSuggestedParamSetList) {
+      logger.info("Discarding param set id: " + paramSet.id);
+      paramSet.paramSetState = JobSuggestedParamSet.ParamSetStatus.DISCARDED;
+      paramSet.update();
+    }
+  }
+
+  /**
+   * Create the new parameter values in JobSuggestedParameterValue in the database
+   */
+  private static JsonArray createUserSuggestedParamValue(JsonNode tuningParameters,
+      JobSuggestedParamSet userSuggestedParamSet) {
+    logger.info("Creating user suggested Param Values");
+    JsonArray updateTuningParams = new JsonArray();
+    for(JsonNode param: tuningParameters) {
+      JsonObject tuningParam = new JsonObject();
+      Integer tuningParameterId = param.path(PARAM_ID).asInt();
+      Double paramValue = param.path(USER_SUGGESTED_PARAM_VALUE).asDouble();
+      TuningParameter tuningParameter = TuningParameter.find
+          .select("*")
+          .where()
+          .eq(TuningParameter.TABLE.id, tuningParameterId)
+          .findUnique();
+      JobSuggestedParamValue userSuggestedParamValue = new JobSuggestedParamValue();
+      userSuggestedParamValue.paramValue = paramValue;
+      userSuggestedParamValue.jobSuggestedParamSet = userSuggestedParamSet;
+      userSuggestedParamValue.tuningParameter = tuningParameter;
+      userSuggestedParamValue.save();
+      tuningParam.addProperty(PARAM_ID, userSuggestedParamValue.tuningParameter.id);
+      tuningParam.addProperty(NAME, userSuggestedParamValue.tuningParameter.paramName);
+      tuningParam.addProperty(CURRENT_PARAM_VALUE, userSuggestedParamValue.paramValue);
+      updateTuningParams.add(tuningParam);
+    }
+    return updateTuningParams;
+  }
+
+  /**
+   * Update autoApply property in TuningJobDefintion table as per the user suggestion
+   */
+  private static void updateAutoApplyProperty(TuningJobDefinition tuningJobDefinition,
+      Boolean autoApply) {
+    if(tuningJobDefinition.autoApply != autoApply) {
+      tuningJobDefinition.autoApply = autoApply;
+      logger.info(String.format("Changing AutoApply for %s to  %s", tuningJobDefinition.job.id, autoApply));
+    }
+  }
+
+  /**
+   * Update iterationCount as per the user suggestion in TuningJobDefintion table
+   */
+  private static void updateIterationCount(TuningJobDefinition tuningJobDefinition,
+      int numberOfIteration) {
+    if (tuningJobDefinition.numberOfIterations != numberOfIteration) {
+      tuningJobDefinition.numberOfIterations = numberOfIteration;
+      logger.info(String.format("Changing the #iteration as per user suggestion for %s to %s",
+          tuningJobDefinition.job.id, tuningJobDefinition.numberOfIterations));
+    }
   }
 }

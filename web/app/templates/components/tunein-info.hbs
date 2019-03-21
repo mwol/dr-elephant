@@ -35,7 +35,7 @@
             <td class="bold">{{param.name}}</td>
             <td>{{param.jobSuggestedParamValue}}</td>
             <td>
-              {{input type="text" class="param-value" value=param.userSuggestedParamValue disabled=true}}
+              {{input type="text" class="param-value" disabled=(eq model.tunein.tuningAlgorithm "OBT") value=param.userSuggestedParamValue}}
             </td>
           </tr>
         {{/each}}
@@ -52,7 +52,7 @@
         <div class="row">
           <div class="col-sm-3">
             <label class="switch">
-              {{input type="checkbox" checked=tunein.autoApply disabled=true}}
+              {{input type="checkbox" checked=tunein.autoApply change=(action "tuneinToggle")}}
               <div class="slider round"></div>
             </label>
           </div>
@@ -64,11 +64,11 @@
             </select>
           </div>
           <div class="col-sm-3">
-            {{input type="text" class="iteration-count" id="form-workflow-id" name="iterationCount" value=tunein.iterationCount disabled=true}}
+            {{input type="text" class="iteration-count" focus-out=(action "iterationCountChange") name="iterationCount" value=tunein.iterationCount}}
           </div>
 
           <div class="col-sm-3">
-            <button type="submit" class="btn wf-button" disabled title="This funtionality will be available in the next release"> Submit</button>
+            <button type="submit" class="btn wf-button"  {{action "submit"}} title="This funtionality will be available in the next release"> Submit</button>
           </div>
         </div>
       </div>

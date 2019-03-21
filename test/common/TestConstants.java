@@ -80,6 +80,7 @@ public class TestConstants {
   public static final String REST_GET_CURRENT_RUN_PARAMETERS = "/rest/getCurrentRunParameters";
   public static final String REST_LOGIN_ENDPOINT = "/rest/login";
   public static final String REST_USER_AUTHORIZATION_API_ENDPOINT = "/rest/userAuthorization";
+  public static final String REST_TUNEIN_DETAILS_API_ENDPOINT = "/rest/tunein";
 
   public static final String DEFAULT_ENCODING = "UTF-8";
 
@@ -136,5 +137,8 @@ public class TestConstants {
   public static final String INVALID_JOB_DEF_ID2 =
       "https://localhost:9191/manager?flow=test_flow&job=sample_job";
 
+  // Tunein Details constants
+  public static final int FAKE_JOB_DEFINITION_ID = 100136;
+  public static final String FAKE_JOB_SUGGESTED_PARAM_SET_ID = "1439";
 
 }

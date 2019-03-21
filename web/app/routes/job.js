@@ -34,6 +34,11 @@ export default Ember.Route.extend({
       })
     });
   },
+  setupController: function(controller, model) {
+    controller.set('model', model);
+    controller.set('currentAlgorithm', model.tunein.get('tuningAlgorithm'));
+    controller.set('currentIterationCount', model.tunein.get('iterationCount'));
+  },
   doLogin(schedulerUrl, cluster) {
     //confirm if the user want to proceed with login
     var userWantToLogin = confirm("To perform this action user needs to login. Are you sure to proceed?")
@@ -57,12 +62,12 @@ export default Ember.Route.extend({
       },
       async: false
     }).then((response) => {
-      if (response.hasOwnProperty("hasWritePermission") && response.hasWritePermission === "true") {
-      if (response.hasWritePermission === "true") {
-        authorizationStatus = "authorised";
-      } else {
-        authorizationStatus = "unauthorised";
-      }
+      if (response.hasOwnProperty("hasWritePermission")) {
+        if (response.hasWritePermission === "true") {
+          authorizationStatus = "authorised";
+        } else {
+          authorizationStatus = "unauthorised";
+        }
     } else if (response.hasOwnProperty("error")) {
       if (response.error === "session") {
         console.log("Previous session_id expired, so proceed to login")
@@ -96,7 +101,7 @@ export default Ember.Route.extend({
         })
       });
     },
-    submitUserChanges(job) {
+    submitUserChanges(tunein, job) {
       var jobDefId = job.get("jobdefid");
       var schedulerName = job.get("scheduler");
       var cluster = job.get("cluster");
@@ -110,6 +115,7 @@ export default Ember.Route.extend({
             .getUserAuthorizationStatus(jobDefId, schedulerUrl, cookieName)
         if (userAuthorizationStatus === "authorised") {
           //call the param change function
+          this.actions.paramChange(tunein, job)
         } else if (userAuthorizationStatus === "unauthorised") {
           alert("User is not authorised to modify TuneIn details!!");
         } else if (userAuthorizationStatus === "session_expired") {
@@ -120,6 +126,24 @@ export default Ember.Route.extend({
           alert("Some error occured while trying to Authorization!!")
         }
       }
+    },
+    paramChange(tunein, jobs) {
+      return Ember.$.ajax({
+        url: "/rest/tunein",
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          tunein: tunein,
+          job: jobs
+        })
+      }).then((response) => {
+          this.doReload();
+      }, (error) => {
+          alert("Something went wrong while updating the TuneIn details");
+      })
+    },
+    doReload: function () {
+      window.location.reload(true);
     },
     error(error, transition) {
       if (error.errors[0].status == 404) {
