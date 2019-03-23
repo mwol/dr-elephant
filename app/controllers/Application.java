@@ -56,6 +56,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.print.attribute.standard.MediaSize;
 import models.AppHeuristicResult;
 import models.AppResult;
 import models.JobDefinition;
@@ -2019,6 +2020,13 @@ public class Application extends Controller {
     JsonObject parent = new JsonObject();
     //Todo: Add the param and other details' validation
     try {
+      logger.info("Validating the TuneIn details");
+      validateTuneInDetails(tunein);
+    } catch (IllegalArgumentException ex) {
+      logger.error(ex);
+      return badRequest(ex.getMessage());
+    }
+    try {
       if (isJobParamUpdated(tuningParameters)) {
         logger.info("Job Params are changed for jobDefinitionId " + jobDefinitionId);
         parent.add(UPDATED_PARAM_DETAILS, updateJobParams(tunein, jobType));
@@ -2277,7 +2285,7 @@ public class Application extends Controller {
       Double userSuggestedParamValue = parameter.path(USER_SUGGESTED_PARAM_VALUE).asDouble();
       if(!userSuggestedParamValue.equals(currentValue) ) {
         if (logger.isDebugEnabled()) {
-          logger.debug(String.format("Param %s is changed from %s to %s", paramName, currentValue,
+          logger.debug(String.format("Param %s is changed from %f to %f", paramName, currentValue,
               userSuggestedParamValue));
         }
         isParamChanged = true;
@@ -2384,7 +2392,9 @@ public class Application extends Controller {
   }
 
   /**
-   * Update autoApply property in TuningJobDefintion table as per the user suggestion
+   * Update autoApply property in TuningJobDefintion table as per the user suggestion if modified
+   * @param autoApply - Boolean value for the autoapply
+   * @param tuningJobDefinition - Tuning Job Definition for the respective Job
    */
   private static void updateAutoApplyProperty(TuningJobDefinition tuningJobDefinition,
       Boolean autoApply) {
@@ -2395,14 +2405,70 @@ public class Application extends Controller {
   }
 
   /**
-   * Update iterationCount as per the user suggestion in TuningJobDefintion table
+   * Update iterationCount as per the user suggestion if modified in TuningJobDefintion table
+   * @param numberOfIteration - Iteration count
+   * @param tuningJobDefinition - Tuning Job Definition for the respective Job
    */
   private static void updateIterationCount(TuningJobDefinition tuningJobDefinition,
       int numberOfIteration) {
     if (tuningJobDefinition.numberOfIterations != numberOfIteration) {
       tuningJobDefinition.numberOfIterations = numberOfIteration;
-      logger.info(String.format("Changing the #iteration as per user suggestion for %s to %s",
+      logger.info(String.format("Changing the #iteration as per user suggestion for %d to %d",
           tuningJobDefinition.job.id, tuningJobDefinition.numberOfIterations));
     }
   }
+
+  /**
+   * Method to validate the tunein details received as param for Update request
+   * Here it is validated if the tuneIn params are of expected dataType and
+   * adhere to the range mentioned in TuningParameters
+   * @param tunein - TuneIn model which may be modified by the user
+   */
+  private static void validateTuneInDetails(JsonNode tunein) {
+    validateJobParameters(tunein.path(TUNING_PARAMETERS));
+    // validate iteration count's datatype
+    try {
+      Integer.parseInt(tunein.path(ITERATION_COUNT).asText());
+    } catch (NumberFormatException nfe) {
+      throw new IllegalArgumentException("Iteration count is not of type Integer");
+    }
+  }
+
+  /**
+   * To validate the tunein params are of expected dataType and
+   * adhere to the range mentioned in TuningParameters
+   * @param jobParameters - TuneIn model which may be modified by the user
+   */
+  private static void validateJobParameters(JsonNode jobParameters) {
+    for(JsonNode parameter: jobParameters) {
+      int paramId = parameter.path(PARAM_ID).asInt();
+      String paramName = parameter.path(NAME).asText();
+      TuningParameter tuningParam = getTuningParameter(paramId);
+      Double userSuggestedParamValue;
+      try {
+        userSuggestedParamValue = Double.parseDouble(parameter.path(USER_SUGGESTED_PARAM_VALUE).asText());
+      } catch (NumberFormatException nfe){
+        throw new IllegalArgumentException(String.format
+            ("Param value for \"%s\" doesn't adhere to expected Datatype", paramName));
+      }
+      if ((userSuggestedParamValue) < tuningParam.minValue ||
+          (userSuggestedParamValue > tuningParam.maxValue) ) {
+        throw new IllegalArgumentException(String.format("Param value for \"%s\" is not in the range [%.2f, %.2f]",
+            paramName, tuningParam.minValue, tuningParam.maxValue));
+      }
+    }
+  }
+
+  /**
+   * Fetch the TuningParamter for a respective id
+   * @param paramId - Id of the parameter
+   */
+  private static TuningParameter getTuningParameter(int paramId) {
+    TuningParameter tuningParameter = TuningParameter.find.select("*")
+        .where()
+        .eq(TuningParameter.TABLE.id, paramId)
+        .findUnique();
+    return tuningParameter;
+  }
+
 }

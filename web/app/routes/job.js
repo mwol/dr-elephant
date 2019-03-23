@@ -84,10 +84,10 @@ export default Ember.Route.extend({
           alert(error.responseText);
           break;
         case 500:
-          alert("Oops!! Something went wrong while Authorization");
+          alert("The Server was unable to process your request, try again");
           break;
         default:
-
+          alert("Oops!! Something went wrong while Authorization")
       }
     });
     return authorizationStatus;
@@ -139,7 +139,17 @@ export default Ember.Route.extend({
       }).then((response) => {
           this.doReload();
       }, (error) => {
-          alert("Something went wrong while updating the TuneIn details");
+        switch (error.status) {
+          case 400:
+            alert(error.responseText);
+            break;
+          case 500:
+            alert("The server was unable to complete your request. Try Again and contact admins if problem persists");
+            break;
+          default:
+            alert("Oops!! Something went wrong.")
+        }
+          this.doReload();
       })
     },
     doReload: function () {
