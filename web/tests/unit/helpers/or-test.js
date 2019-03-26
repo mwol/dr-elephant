@@ -20,12 +20,18 @@ import { module, test } from 'qunit';
 module('Unit | Helper | or');
 
 test('Test for or helper', function(assert) {
-  let result = or([true,false]);
+  let result = or([true, false]);
   assert.ok(result);
-  result = or([false, false])
+  result = or([false, false]);
   assert.ok(!result);
-  result = or([false, false, false, false, true, false])
+  result = or([false, false, false, false, true, false]);
   assert.ok(result);
-  result = or([false, false, false, false, false, false])
+  result = or([false, false, false, false, false, false]);
   assert.ok(!result);
+
+  assert.throws(
+      function() {or([false])},
+      new Error("Handlerbars Helper 'or' needs atleast 2 Boolean parameters"),
+      'Throw error when arguments less than 2'
+  );
 });
