@@ -19,10 +19,11 @@ import Scheduler from 'dr-elephant/utils/scheduler';
 
 export default Ember.Route.extend({
   ajax: Ember.inject.service(),
+  notifications: Ember.inject.service('notification-messages'),
+
   beforeModel: function(transition) {
     let loginController = this.controllerFor('login');
     loginController.set('previousTransition', transition);
->>>>>>> 60b0f9c... Implementation of Authentication and Authorization for TuneIn purpose
     this.jobid = transition.queryParams.jobid;
   },
 
@@ -78,12 +79,19 @@ export default Ember.Route.extend({
     (error) => {
       switch (error.status) {
         case 400:
-          alert(error.responseText);
+          this.get('notifications').error(error.responseText, {
+            autoClear: true
+          });
           break;
         case 500:
-          alert("Oops!! Something went wrong while Authorization");
+          this.get('notifications').error("The server was unable to process your request", {
+            autoClear: true
+          });
           break;
         default:
+          this.get('notifications').error("Something went wrong!!", {
+            autoClear: true
+          });
 
       }
     });
@@ -102,24 +110,28 @@ export default Ember.Route.extend({
       var jobDefId = job.get("jobdefid");
       var schedulerName = job.get("scheduler");
       var cluster = job.get("cluster");
-      const cookieName = "elephant." + cluster + ".session.id"
+      const cookieName = "elephant." + cluster + ".session.id";
       var scheduler = new Scheduler();
-      var schedulerUrl = scheduler.getSchedulerUrl(jobDefId, schedulerName)
+      var schedulerUrl = scheduler.getSchedulerUrl(jobDefId, schedulerName);
       if (!Cookies.get(cookieName)) {
         this.doLogin(schedulerUrl, cluster)
       } else {
         var userAuthorizationStatus = this
-            .getUserAuthorizationStatus(jobDefId, schedulerUrl, cookieName)
+            .getUserAuthorizationStatus(jobDefId, schedulerUrl, cookieName);
         if (userAuthorizationStatus === "authorised") {
           //call the param change function
         } else if (userAuthorizationStatus === "unauthorised") {
-          alert("User is not authorised to modify TuneIn details!!");
+          this.get('notifications').error("User is not authorised to modify TuneIn details!!", {
+            autoClear: true
+          });
         } else if (userAuthorizationStatus === "session_expired") {
           //Removing the existing session_id Cookie
           Cookies.remove(cookieName)
           this.doLogin(schedulerUrl, cluster)
         } else if (userAuthorizationStatus === "error") {
-          alert("Some error occured while trying to Authorization!!")
+          this.get('notifications').error("Some error occured while trying to Authorization!!", {
+            autoClear: true
+          });
         }
       }
     },
