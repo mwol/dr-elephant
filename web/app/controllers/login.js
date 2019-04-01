@@ -52,7 +52,7 @@ export default Ember.Controller.extend({
               this.get("session").setLoggedInUser(username);
               this.set("error", '');
               //Transit to previous route if available or transit to index page
-              this.get('notifications').success("Successful Login", {
+              this.get('notifications').success("Successful Login!! Now you can modify and submit TuneIn params", {
                 autoClear: true
               });
               this.transitionToPreviousRoute();
