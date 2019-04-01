@@ -97,6 +97,7 @@ object Dependencies {
     "com.github.tomakehurst" % "wiremock-standalone" % "2.21.0" % Test excludeAll(
       ExclusionRule(organization = "org.apache.httpcomponents")
       )
+    "javax.mail" % "mail" % "1.4"
   ) :+ sparkExclusion
 
   var dependencies = Seq(javaJdbc, javaEbean, cache)
