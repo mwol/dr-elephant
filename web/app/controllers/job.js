@@ -20,7 +20,8 @@ export default Ember.Controller.extend({
   queryParams: ['jobid'],
   jobid: null,
   showTuneinRecommendations: false,
-
+  showError: false,
+  errorMessage: '',
   actions: {
     showRecommendation(jobDefinitionId) {
       this.set("showTuneinRecommendations", true),

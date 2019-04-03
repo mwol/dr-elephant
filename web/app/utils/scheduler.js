@@ -99,13 +99,12 @@ export default Ember.Object.extend({
   },
 
   getSchedulerUrl(jobDefinitionId, schedulerName) {
-    var schedulerUrl;
+    let schedulerUrl;
     //since jobDefId is of
     switch (schedulerName) {
     case Schedulers.AZKABAN:
-      var endIndex = jobDefinitionId.indexOf("/manager");
+      const endIndex = jobDefinitionId.indexOf("/manager");
       schedulerUrl = jobDefinitionId.substr(0, endIndex);
-      console.log(schedulerUrl);
       break;
 
     default:

@@ -93,6 +93,12 @@
     </table>
   </div>
 
+  {{#if showError}}
+    <div class="container text-center">
+      <label class="alert alert-danger text-center">{{errorMessage}}</label>
+    </div>
+  {{/if}}
+
   {{tunein-info tunein=model.tunein job=model.jobs action="updateShowRecommendationCount" param=model.tunein.jobDefinitionId}}
 
   <div class="shadow summary-list-container">

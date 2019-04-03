@@ -39,7 +39,7 @@ export default Ember.Route.extend({
   },
   doLogin(schedulerUrl, cluster) {
     //confirm if the user want to proceed with login
-    var userWantToLogin = confirm("To perform this action user needs to login. Are you sure to proceed?")
+    const userWantToLogin = confirm("To perform this action user needs to login. Are you sure to proceed?")
     if (userWantToLogin) {
       this.transitionTo('login').then((loginRoute) => {
         loginRoute.controller.set('schedulerUrl', schedulerUrl);
@@ -48,7 +48,7 @@ export default Ember.Route.extend({
     }
   },
   getUserAuthorizationStatus(jobdefid, schedulerUrl, cookieName) {
-    var authorizationStatus
+    let authorizationStatus;
     const is_authorised_key = "hasWritePermission"
     $.ajax({
       url: "/rest/userAuthorization",
@@ -68,34 +68,35 @@ export default Ember.Route.extend({
         }
     } else if (response.hasOwnProperty("error")) {
       if (response.error === "session") {
-        console.log("Previous session_id expired, so proceed to login")
+        console.log("Previous session_id expired, so proceed to login");
         authorizationStatus = "session_expired";
       } else {
         //Some other error occurred
-        authorizationStatus = "error"
+        authorizationStatus = "error";
       }
     }
   },
     (error) => {
       switch (error.status) {
         case 400:
-          this.get('notifications').error(error.responseText, {
-            autoClear: true
-          });
+          this.showError(error.responseText);
           break;
         case 500:
-          this.get('notifications').error("The server was unable to process your request", {
-            autoClear: true
-          });
+          this.showError("The server was unable to process your request");
           break;
         default:
-          this.get('notifications').error("Something went wrong!!", {
-            autoClear: true
-          });
-
+          this.showError("Something went wrong!!");
       }
     });
     return authorizationStatus;
+  },
+  showError(errorMessage) {
+    this.controller.set('showError', true);
+    this.controller.set('errorMessage', errorMessage);
+  },
+  clearError() {
+    this.controller.set('showError', false);
+    this.controller.set('errorMessage', '');
   },
   actions: {
     updateShowRecommendationCount(jobDefinitionId) {
@@ -107,31 +108,29 @@ export default Ember.Route.extend({
       });
     },
     submitUserChanges(job) {
-      var jobDefId = job.get("jobdefid");
-      var schedulerName = job.get("scheduler");
-      var cluster = job.get("cluster");
+      const jobDefId = job.get("jobdefid");
+      const schedulerName = job.get("scheduler");
+      const cluster = job.get("cluster");
       const cookieName = "elephant." + cluster + ".session.id";
-      var scheduler = new Scheduler();
-      var schedulerUrl = scheduler.getSchedulerUrl(jobDefId, schedulerName);
+      const scheduler = new Scheduler();
+      const schedulerUrl = scheduler.getSchedulerUrl(jobDefId, schedulerName);
       if (!Cookies.get(cookieName)) {
-        this.doLogin(schedulerUrl, cluster)
+        this.doLogin(schedulerUrl, cluster);
       } else {
         var userAuthorizationStatus = this
             .getUserAuthorizationStatus(jobDefId, schedulerUrl, cookieName);
         if (userAuthorizationStatus === "authorised") {
           //call the param change function
+          //clear error for previus attempt if exists
+          this.clearError();
         } else if (userAuthorizationStatus === "unauthorised") {
-          this.get('notifications').error("User is not authorised to modify TuneIn details!!", {
-            autoClear: true
-          });
+          this.showError("User is not authorised to modify TuneIn details!!");
         } else if (userAuthorizationStatus === "session_expired") {
           //Removing the existing session_id Cookie
-          Cookies.remove(cookieName)
-          this.doLogin(schedulerUrl, cluster)
+          Cookies.remove(cookieName);
+          this.doLogin(schedulerUrl, cluster);
         } else if (userAuthorizationStatus === "error") {
-          this.get('notifications').error("Some error occured while trying to Authorization!!", {
-            autoClear: true
-          });
+          this.showError("Some error occured while User Authorization!!");
         }
       }
     },

@@ -19,38 +19,37 @@ import Ember from 'ember';
 export default Ember.Controller.extend({
   session: Ember.inject.service(),
   notifications: Ember.inject.service('notification-messages'),
-  error: '',
+  errorMessage: '',
   showError: false,
   schedulerUrl: null,
   cluster: null,
   actions: {
     login() {
-      let {username, password} = this.getProperties('username', 'password');
+      let { username, password } = this.getProperties('username', 'password');
       username = this.getValidStringValue(username);
       password = this.getValidStringValue(password);
       if (!username.length || !password.length) {
-        this.get('notifications').error("Username or Password cannot be empty.", {
-          autoClear: true
-        });
-      } else if (this.cluster == null || this.schedulerUrl == null){
+        this.set("showError", true);
+        this.set("errorMessage", "Username or Password cannot be empty");
+      } else if (this.cluster === null || this.schedulerUrl === null){
         /*if cluster or the schedulerUrl is empty this means that
            login route is not transitioned from the job page */
-        this.get('notifications').error("Cannot process your request!! Visit the Job Page again and retry", {
-          autoClear: true
-        });
+        this.set("showError", true);
+        this.set("errorMessage", "Cannot process your request!! Visit the respective Job Page and retry");
       } else {
           //session service will return an Ajax promise as a response of the POST call to /login API
           this.get("session").login(username, password, this.schedulerUrl).then((response) => {
             if (response.hasOwnProperty("status") && response.status === "success") {
             //Setting same TTL for the cookie as the TTL of Azkaban session.id i.e. 10 hours
-              var inTenHours = new Date(new Date().getTime() + 10 * 60 * 60 * 1000);
+              const inTenHours = new Date(new Date().getTime() + 10 * 60 * 60 * 1000);
               const cookieName = "elephant." + this.cluster + ".session.id";
               Cookies.set(cookieName, response.session_id, {
                 expires: inTenHours
               });
               //setting user
               this.get("session").setLoggedInUser(username);
-              this.set("error", '');
+              this.set('showError', false);
+              this.set("errorMessage", '');
               //Transit to previous route if available or transit to index page
               this.get('notifications').success("Successful Login!! Now you can modify and submit TuneIn params", {
                 autoClear: true
@@ -58,22 +57,19 @@ export default Ember.Controller.extend({
               this.transitionToPreviousRoute();
             } else if (response.hasOwnProperty("error")) {
                 this.set("showError", true);
-                this.set("error", response.error)
+                this.set("errorMessage", response.error);
             } else {
-                this.get('notifications').error("Something went wrong while processing your request", {
-                  autoClear: true
-                });
+                this.set("showError", true);
+                this.set("errorMessage", "Something went wrong while processing your request");
             }
             this.resetLoginProperties();
           }, (error) => {
               if (error.status === 500) {
-                this.get('notifications').error("The server was unable to process your request", {
-                  autoClear: true
-                });
+                this.set("showError", true);
+                this.set("errorMessage", "The server was unable to process your request");
               } else if (error.responseText) {
-                this.get('notifications').error(error.responseText, {
-                  autoClear: true
-                });
+                this.set("showError", true);
+                this.set("errorMessage", error.responseText);
               }
               this.resetLoginProperties();
           });
@@ -85,16 +81,16 @@ export default Ember.Controller.extend({
   then empty string will be returned */
 
   getValidStringValue(value) {
-    if (typeof(value) == `undefined`) {
-      return ''
+    if (typeof(value) === `undefined`) {
+      return '';
     } else {
-      return value
+      return value;
     }
   },
 
   //Function to make a transition to previous route or the index route
   transitionToPreviousRoute() {
-    var previousTransition = this.get('previousTransition');
+    let previousTransition = this.get('previousTransition');
     if (previousTransition) {
       //resetting previous to Null
       this.set('previousTransition', null);

@@ -29,10 +29,10 @@ test('Test scheduler utility', function(assert) {
   schedulerName = "oozie";
   assert.equal(scheduler.getFlowName(flowexecid, flowdefid,schedulerName),flowexecid);
 
-  flowdefid = "https://x:y:x"
+  flowdefid = "https://x:y:x";
   assert.equal(scheduler.getFlowName(flowexecid, flowdefid,schedulerName),flowexecid);
 
-  flowexecid = "https://x:y:z"
+  flowexecid = "https://x:y:z";
   assert.equal(scheduler.getFlowName(flowexecid, flowdefid,schedulerName),flowexecid);
 
 });
@@ -47,19 +47,19 @@ test('Test job display name', function(assert) {
   schedulerName = "oozie";
   assert.equal(scheduler.getJobDisplayName(jobexecid, jobdefid,schedulerName),jobexecid);
 
-  jobdefid = "https://x:y:x"
+  jobdefid = "https://x:y:x";
   assert.equal(scheduler.getJobDisplayName(jobexecid, jobdefid,schedulerName),jobexecid);
 
-  jobexecid = "https://x:y:z"
+  jobexecid = "https://x:y:z";
   assert.equal(scheduler.getJobDisplayName(jobexecid, jobdefid,schedulerName),jobexecid);
 });
 
 test('Test extracted Scheduler Url from JobDefId' , function(assert) {
-  var scheduler = new Scheduler();
-  var jobdefid = "https://localhost:8443/manager?project=project1&flow=flow1&job=job1"
-  var schedulerName = "azkaban";
-  var schedulerUrl = "https://localhost:8443";
+  let scheduler = new Scheduler();
+  let jobdefid = "https://localhost:8443/manager?project=project1&flow=flow1&job=job1";
+  let schedulerName = "azkaban";
+  let schedulerUrl = "https://localhost:8443";
 
   assert.equal(scheduler.getSchedulerUrl(jobdefid,schedulerName), schedulerUrl);
 
-})
+});

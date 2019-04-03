@@ -392,3 +392,9 @@ input:checked + .slider:after
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
+
+.container label {
+  display: inline-block;
+  float: none;
+  margin: 0 auto;
+}
