@@ -22,10 +22,24 @@ export default Ember.Controller.extend({
   showTuneinRecommendations: false,
   showError: false,
   errorMessage: '',
+  currentIterationCount: null,
+
   actions: {
     showRecommendation(jobDefinitionId) {
-      this.set("showTuneinRecommendations", true),
       this.send("showRecommendations", jobDefinitionId);
+    },
+    autoTuningToggle(event) {
+      if (event && event.target) {
+        this.set('model.tunein.autoApply', event.target.checked);
+      }
+    },
+    updateIterationCount() {
+      const currentIterationCount = this.get('currentIterationCount');
+      let isIterationCountChanged =
+          (currentIterationCount != this.get('model.tunein.iterationCount')) ? true : false;
+    },
+    submit(job, tunein) {
+      this.send("submitUserChanges", tunein, job);
     }
   }
 });

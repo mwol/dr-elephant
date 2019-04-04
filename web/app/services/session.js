@@ -20,7 +20,7 @@ export default Ember.Service.extend({
   currentUser: null,
   isLoggedIn: Ember.computed.bool('currentUser'),
   store: Ember.inject.service(),
-  login(username, password, schedulerUrl, cluster){
+  login(username, password, schedulerUrl){
     return Ember.$.ajax({
       url: "/rest/login",
       type: 'POST',
@@ -29,7 +29,6 @@ export default Ember.Service.extend({
         username: username,
         password: password,
         schedulerUrl: schedulerUrl,
-        cluster: cluster
       })
     })
   },

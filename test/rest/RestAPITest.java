@@ -20,12 +20,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.linkedin.drelephant.DrElephant;
 import com.linkedin.drelephant.ElephantContext;
+import com.linkedin.drelephant.tuning.Constant;
 import com.linkedin.drelephant.tuning.Manager;
 import com.linkedin.drelephant.tuning.obt.BaselineManagerOBT;
 import com.linkedin.drelephant.tuning.obt.FitnessManagerOBTAlgoPSO;
 import com.linkedin.drelephant.util.Utils;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -60,6 +64,7 @@ import static controllers.Application.BAD_REQUEST;
 import static controllers.Application.INTERNAL_SERVER_ERROR;
 import static controllers.Application.OK;
 import static controllers.api.v1.JsonKeys.*;
+import static controllers.api.v1.JsonKeys.JOB_TYPE;
 import static org.junit.Assert.*;
 import static play.test.Helpers.*;
 
@@ -80,6 +85,14 @@ public class RestAPITest {
   private static final Logger logger = LoggerFactory.getLogger(RestAPITest.class);
   private static FakeApplication fakeApp;
   private WireMockServer _wireMockServer;
+
+  // Spark Constants
+  private static final String SPARK_EXECUTOR_MEMORY = "spark.executor.memory";
+  private static final String SPARK_DRIVER_MEMORY = "spark.driver.memory";
+  private static final String SPARK_EXECUTOR_CORES = "spark.executor.cores";
+  private static final String SPARK_MEMORY_FRACTION = "spark.memory.fraction";
+
+  private static final Double delta = 0.0000001;
 
   @Before
   public void setup() {
@@ -510,6 +523,7 @@ public class RestAPITest {
     });
   }
 
+  @Test
   /**
    * <p>
    *   Rest API - Provides data for plotting the job history graph for time and resources
@@ -1253,6 +1267,80 @@ public class RestAPITest {
     });
   }
 
+  @Test
+  public void testRestUpdateTuneinDetailsWithChangedParamsOnly() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        populateAutoTuningTestData1();
+        JsonNode requestJson = null;
+        JsonObject parent = new JsonObject();
+        try {
+            //Job JsonObject containing only JobType as solely this is required for Updating TuneIn params
+            JsonObject job = new JsonObject();
+            job.addProperty(JOB_TYPE, "Spark");
+            JsonObject tunein = getBasicTuningDetails();
+            // Adding custom values to params according to the test use case
+            tunein.add(TUNING_PARAMETERS, getModifiedTuneinParams());
+            tunein.addProperty(AUTO_APPLY, false);
+            tunein.addProperty(ITERATION_COUNT, 10);
+            parent.add(TUNEIN, tunein);
+            parent.add(JOB, job);
+            requestJson = new ObjectMapper().readTree(parent.toString());
+        } catch (Exception ex) {
+          logger.error("Error while generating TuneIn request data ", ex);
+        }
+        final WS.Response response = WS.url(BASE_URL + REST_TUNEIN_DETAILS_API_ENDPOINT).
+                post(requestJson).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        JsonNode jsonResponse = response.asJson();
+        assertEquals("Auto Apply must be unchanged", jsonResponse.path(AUTO_APPLY).asBoolean(), false);
+        assertEquals("Iteration count must be unchanged", jsonResponse.path(ITERATION_COUNT).asInt(), 10);
+        assertTrue("Response should contain Updated_Param_Detail object", jsonResponse.has(UPDATED_PARAM_DETAILS));
+        JsonNode tuningParams = jsonResponse.path(UPDATED_PARAM_DETAILS).path(TUNING_PARAMETERS);
+        assertTrue(tuningParams.isArray());
+        for (JsonNode param : tuningParams) {
+          if (param.path(NAME).asText().equals(SPARK_MEMORY_FRACTION)) {
+            assertEquals(param.path(CURRENT_PARAM_VALUE).asDouble(), 0.20, delta);
+          } else if (param.path(NAME).asText().equals(SPARK_EXECUTOR_CORES)) {
+            assertEquals(param.path(CURRENT_PARAM_VALUE).asDouble(), 5.0, delta);
+          }
+        }
+      }
+    });
+  }
+
+  @Test
+  public void testRestUpdateTuneinDetailsWithOnlyModifiedIterationCount() {
+    running(testServer(TEST_SERVER_PORT, fakeApp), new Runnable() {
+      @Override
+      public void run() {
+        populateAutoTuningTestData1();
+        JsonNode requestJson = null;
+        JsonObject parent = new JsonObject();
+        try {
+          //Job JsonObject containing only JobType as solely this is required for Updating TuneIn params
+          JsonObject job = new JsonObject();
+          job.addProperty(JOB_TYPE, "Spark");
+          JsonObject tunein = getBasicTuningDetails();
+          // Adding custom values to params according to the test use case
+          tunein.addProperty(AUTO_APPLY, true);
+          tunein.addProperty(ITERATION_COUNT, 20);
+          parent.add(TUNEIN, tunein);
+          parent.add(JOB, job);
+          requestJson = new ObjectMapper().readTree(parent.toString());
+        } catch (Exception ex) {
+          logger.error("Error while generating TuneIn request data ", ex);
+        }
+        final WS.Response response = WS.url(BASE_URL + REST_TUNEIN_DETAILS_API_ENDPOINT).
+            post(requestJson).get(RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
+        JsonNode jsonResponse = response.asJson();
+        assertEquals("Auto Apply should be changed to \"True\"", jsonResponse.path(AUTO_APPLY).asBoolean(), true);
+        assertEquals("Iteration count must be changed to 20 from 10", jsonResponse.path(ITERATION_COUNT).asInt(), 20);
+        assertTrue("Response should not contain Updated_Param_Detail object", !jsonResponse.has(UPDATED_PARAM_DETAILS));
+      }
+    });
+  }
+
   private void testRestSearchGeneric(Iterator<JsonNode> searchNode) {
     while (searchNode.hasNext()) {
       JsonNode search = searchNode.next();
@@ -1313,6 +1401,49 @@ public class RestAPITest {
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
+
+  private static JsonObject getBasicTuningDetails() throws IOException {
+    JsonObject tunein = new JsonObject();
+    JsonArray tuningAlgorithmList = new JsonArray();
+    tunein.addProperty(JOB_DEFINTITION_ID, FAKE_JOB_DEFINITION_ID);
+    tunein.addProperty(JOB_SUGGESTED_PARAM_SET_ID, FAKE_JOB_SUGGESTED_PARAM_SET_ID);
+    tunein.addProperty(TUNING_ALGORITH, Constant.TuningType.HBT.name());
+    tunein.addProperty(TUNING_ALGORITHM_ID, 5);
+    JsonObject hbtAlgo = new JsonObject();
+    hbtAlgo.addProperty(NAME, Constant.TuningType.HBT.name());
+    JsonObject obtAlgo = new JsonObject();
+    obtAlgo.addProperty(NAME, Constant.TuningType.OBT.name());
+    tuningAlgorithmList.add(hbtAlgo);
+    tuningAlgorithmList.add(obtAlgo);
+    tunein.add(TUNING_ALGORITHM_LIST, tuningAlgorithmList);
+    return tunein;
+  }
+
+  private static JsonArray getModifiedTuneinParams() {
+    JsonArray tuningParamList = new JsonArray();
+    tuningParamList.add(getTuneinParam(21, SPARK_EXECUTOR_MEMORY, "3066.28",
+        "3066.28", "3066.28" ));
+    tuningParamList.add(getTuneinParam(22, SPARK_DRIVER_MEMORY, "1512.29",
+        "1512.29", "1512.29" ));
+    //Here userSuggestedParamValue is different than the current value
+    tuningParamList.add(getTuneinParam(23, SPARK_EXECUTOR_CORES, "3",
+        "3", "5" ));
+    //Here also userSuggestedParamValue is different than the current value
+    tuningParamList.add(getTuneinParam(24, SPARK_MEMORY_FRACTION, "0.19",
+        "0.19", "0.20" ));
+    return tuningParamList;
+  }
+
+  private static JsonObject getTuneinParam(int paramId, String paramName, String currentParamValue,
+      String jobSuggestedParamValue, String userSuggestedParamValue) {
+    JsonObject param = new JsonObject();
+    param.addProperty(PARAM_ID, paramId);
+    param.addProperty(NAME, paramName);
+    param.addProperty(CURRENT_PARAM_VALUE, currentParamValue);
+    param.addProperty(JOB_SUGGESTED_PARAM_VALUE, jobSuggestedParamValue);
+    param.addProperty(USER_SUGGESTED_PARAM_VALUE, userSuggestedParamValue);
+    return param;
   }
 
   private String getLoginRequestBody(String username, String password) {

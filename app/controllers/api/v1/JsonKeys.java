@@ -94,7 +94,26 @@ public class JsonKeys {
   public static final String APPLICATIONS = "applications";
   public static final String TOTAL_APPLICATIONS = "totalapplications";
 
-  // Authenication and Authorization
+  // TuneIn
+  public static final String TUNEIN = "tunein";
+  public static final String JOB = "job";
+  public static final String PARAM_ID = "paramId";
+  public static final String JOB_DEFINTITION_ID = "jobDefinitionId";
+  public static final String JOB_SUGGESTED_PARAM_SET_ID = "jobSuggestedParamSetId";
+  public static final String USER_SUGGESTED_PARAM_SET_ID = "userSuggestedParamSetId";
+  public static final String USER_SUGGESTED_PARAM_VALUE = "userSuggestedParamValue";
+  public static final String JOB_SUGGESTED_PARAM_VALUE = "jobSuggestedParamValue";
+  public static final String CURRENT_PARAM_VALUE = "currentParamValue";
+  public static final String TUNING_ALGORITHM_ID = "tuningAlgorithmId";
+  public static final String AUTO_APPLY = "autoApply";
+  public static final String TUNING_ALGORITH = "tuningAlgorithm";
+  public static final String REASON_TO_DISABLE_TUNING = "reasonForTuningDisable";
+  public static final String ITERATION_COUNT = "iterationCount";
+  public static final String TUNING_PARAMETERS = "tuningParameters";
+  public static final String TUNING_ALGORITHM_LIST = "tuningAlgorithmList";
+  public static final String UPDATED_PARAM_DETAILS = "updatedParamDetails";
+
+  // Authentication and Authorizaton
   public static final String SESSION_ID_KEY = "session_id";
   public static final String PROJECT_KEY = "project";
   public static final String PASSWORD = "password";

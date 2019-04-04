@@ -20,6 +20,7 @@ import Scheduler from 'dr-elephant/utils/scheduler';
 export default Ember.Route.extend({
   ajax: Ember.inject.service(),
   notifications: Ember.inject.service('notification-messages'),
+  session: Ember.inject.service(),
 
   beforeModel: function(transition) {
     let loginController = this.controllerFor('login');
@@ -37,9 +38,16 @@ export default Ember.Route.extend({
       })
     });
   },
+  setupController: function(controller, model) {
+    controller.set('model', model);
+    controller.set('currentAlgorithm', model.tunein.get('tuningAlgorithm'));
+    controller.set('currentIterationCount', model.tunein.get('iterationCount'));
+    controller.set('showError', false);
+    controller.set('errorMessage', '');
+  },
   doLogin(schedulerUrl, cluster) {
     //confirm if the user want to proceed with login
-    const userWantToLogin = confirm('To perform this action user needs to login. Are you sure to proceed?')
+    const userWantToLogin = confirm('To perform this action user needs to login. Are you sure to proceed?');
     if (userWantToLogin) {
       this.transitionTo('login').then((loginRoute) => {
         loginRoute.controller.set('schedulerUrl', schedulerUrl);
@@ -106,22 +114,24 @@ export default Ember.Route.extend({
         })
       });
     },
-    submitUserChanges(job) {
+    submitUserChanges(tunein, job) {
       const jobDefId = job.get('jobdefid');
       const schedulerName = job.get('scheduler');
       const cluster = job.get('cluster');
       const cookieName = 'elephant.' + cluster + '.session.id';
       const scheduler = new Scheduler();
       const schedulerUrl = scheduler.getSchedulerUrl(jobDefId, schedulerName);
+      const currentUser = this.get('session').currentUser;
       if (!Cookies.get(cookieName)) {
         this.doLogin(schedulerUrl, cluster);
       } else {
-        var userAuthorizationStatus = this
+        let userAuthorizationStatus = this
             .getUserAuthorizationStatus(jobDefId, schedulerUrl, cookieName);
         if (userAuthorizationStatus === 'authorised') {
           //call the param change function
           //clear error for previous attempt if exists
           this.clearError();
+          this.actions.paramChange(tunein, job, currentUser, this);
         } else if (userAuthorizationStatus === 'unauthorised') {
           this.showError('User is not authorised to modify TuneIn details!!');
         } else if (userAuthorizationStatus === 'session_expired') {
@@ -132,6 +142,38 @@ export default Ember.Route.extend({
           this.showError('Some error occured while User Authorization!!');
         }
       }
+    },
+    paramChange(tunein, jobs, user, jobRoute) {
+      Ember.$.ajax({
+        url: '/rest/tunein',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          tunein: tunein,
+          job: jobs,
+          username: user
+        })
+      }).then((response) => {
+          jobRoute.get('notifications').success('Update Successful', {
+           autoClear: true
+          });
+          this.doReload();
+      }, (error) => {
+        switch (error.status) {
+          case 400:
+            jobRoute.showError(error.responseText);
+            break;
+          case 500:
+            jobRoute.showError('The server was unable to complete your request.'
+                + ' Try Again and contact admins if problem persists');
+            break;
+          default:
+            jobRoute.showError('Oops!! Something went wrong.');
+        }
+      });
+    },
+    doReload: function () {
+      window.location.reload(true);
     },
     error(error, transition) {
       if (error.errors[0].status == 404) {
