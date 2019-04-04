@@ -61,6 +61,7 @@ GET        /rest/userAuthorization              controllers.Application.getUserA
 POST       /rest/getCurrentRunParameters        controllers.Application.getCurrentRunParameters()
 POST       /rest/showTuneinParams               controllers.Application.updateShowRecommendationCount()
 POST       /rest/login                          controllers.Application.authenticateUser()
+POST       /rest/tunein                         controllers.Application.updateTuneinDetails()
 
 # Metrics calls
 GET        /ping                                controllers.MetricsController.ping()

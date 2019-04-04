@@ -10,7 +10,6 @@ import com.linkedin.drelephant.tuning.obt.BaselineManagerOBT;
 import com.linkedin.drelephant.tuning.obt.FitnessManagerOBTAlgoIPSO;
 import com.linkedin.drelephant.tuning.obt.FitnessManagerOBTAlgoPSO;
 import com.linkedin.drelephant.tuning.obt.ParameterGenerateManagerOBTAlgoPSOIPSOImpl;
-import com.linkedin.drelephant.tuning.obt.ParameterGenerateManagerOBTAlgoPSO;
 import com.linkedin.drelephant.tuning.obt.ParameterGenerateManagerOBTAlgoPSOImpl;
 import org.apache.log4j.Logger;
 
@@ -44,19 +43,19 @@ public class ManagerFactory {
       return new BaselineManagerHBT();
     }
     if (typeOfManagers.equals(Constant.TypeofManagers.AbstractFitnessManager.name()) && algorithmType.equals(
-        Constant.AlgotihmType.HBT.name())) {
+        Constant.AlgorithmType.HBT.name())) {
       logger.info("Manager Type Fitness Manager HBT");
       return new FitnessManagerHBT();
     }
     if (typeOfManagers.equals(Constant.TypeofManagers.AbstractParameterGenerateManager.name()) && executionEngineTypes.equals(
         Constant.ExecutionEngineTypes.MR.name()) && algorithmType.equals(
-        Constant.AlgotihmType.HBT.name())) {
+        Constant.AlgorithmType.HBT.name())) {
       logger.info("Manager Type TuningType Manager HBT MR");
       return new ParameterGenerateManagerHBT(new MRExecutionEngine());
     }
     if (typeOfManagers.equals(Constant.TypeofManagers.AbstractParameterGenerateManager.name()) && executionEngineTypes.equals(
         Constant.ExecutionEngineTypes.SPARK.name()) && algorithmType.equals(
-        Constant.AlgotihmType.HBT.name())) {
+        Constant.AlgorithmType.HBT.name())) {
       logger.info("Manager Type TuningType Manager HBT Spark");
       return new ParameterGenerateManagerHBT(new SparkExecutionEngine());
     }
@@ -69,12 +68,12 @@ public class ManagerFactory {
       return new BaselineManagerOBT();
     }
     if (typeOfManagers.equals(Constant.TypeofManagers.AbstractFitnessManager.name()) && algorithmType.equals(
-        Constant.AlgotihmType.PSO.name())) {
+        Constant.AlgorithmType.PSO.name())) {
       logger.info("Manager Type Fitness Manager OBT PSO");
       return new FitnessManagerOBTAlgoPSO();
     }
     if (typeOfManagers.equals(Constant.TypeofManagers.AbstractFitnessManager.name()) && algorithmType.equals(
-        Constant.AlgotihmType.PSO_IPSO.name())) {
+        Constant.AlgorithmType.PSO_IPSO.name())) {
       logger.info("Manager Type Fitness Manager OBT IPSO");
       return new FitnessManagerOBTAlgoIPSO();
     }
@@ -87,22 +86,22 @@ public class ManagerFactory {
 
   private static Manager getManagerForOBTForTuningType(String executionEngineTypes, String algorithmType) {
     if (executionEngineTypes.equals(Constant.ExecutionEngineTypes.MR.name()) && algorithmType.equals(
-        Constant.AlgotihmType.PSO_IPSO.name())) {
+        Constant.AlgorithmType.PSO_IPSO.name())) {
       logger.info("Manager Type TuningType Manager OBT IPSO MR");
       return new ParameterGenerateManagerOBTAlgoPSOIPSOImpl(new MRExecutionEngine());
     }
     if (executionEngineTypes.equals(Constant.ExecutionEngineTypes.MR.name()) && algorithmType.equals(
-        Constant.AlgotihmType.PSO.name())) {
+        Constant.AlgorithmType.PSO.name())) {
       logger.info("Manager Type TuningType Manager OBT PSO MR");
       return new ParameterGenerateManagerOBTAlgoPSOImpl(new MRExecutionEngine());
     }
     if (executionEngineTypes.equals(Constant.ExecutionEngineTypes.SPARK.name()) && algorithmType.equals(
-        Constant.AlgotihmType.PSO_IPSO.name())) {
+        Constant.AlgorithmType.PSO_IPSO.name())) {
       logger.info("Manager Type TuningType Manager OBT IPSO Spark");
       return new ParameterGenerateManagerOBTAlgoPSOIPSOImpl(new SparkExecutionEngine());
     }
     if (executionEngineTypes.equals(Constant.ExecutionEngineTypes.SPARK.name()) && algorithmType.equals(
-        Constant.AlgotihmType.PSO.name())) {
+        Constant.AlgorithmType.PSO.name())) {
       logger.info("Manager Type TuningType Manager OBT PSO Spark");
       return new ParameterGenerateManagerOBTAlgoPSOImpl(new SparkExecutionEngine());
     }
