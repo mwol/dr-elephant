@@ -29,47 +29,38 @@ export default Ember.Controller.extend({
       username = this.getValidStringValue(username);
       password = this.getValidStringValue(password);
       if (!username.length || !password.length) {
-        this.set("showError", true);
-        this.set("errorMessage", "Username or Password cannot be empty");
+        this.error('Username or Password cannot be empty');
       } else if (this.cluster === null || this.schedulerUrl === null){
         /*if cluster or the schedulerUrl is empty this means that
            login route is not transitioned from the job page */
-        this.set("showError", true);
-        this.set("errorMessage", "Cannot process your request!! Visit the respective Job Page and retry");
+        this.error('Cannot process your request!! Visit the respective Job Page and retry');
       } else {
           //session service will return an Ajax promise as a response of the POST call to /login API
-          this.get("session").login(username, password, this.schedulerUrl).then((response) => {
-            if (response.hasOwnProperty("status") && response.status === "success") {
+          this.get('session').login(username, password, this.schedulerUrl).then((response) => {
+            if (response.hasOwnProperty('status') && response.status === 'success') {
             //Setting same TTL for the cookie as the TTL of Azkaban session.id i.e. 10 hours
               const inTenHours = new Date(new Date().getTime() + 10 * 60 * 60 * 1000);
-              const cookieName = "elephant." + this.cluster + ".session.id";
+              const cookieName = 'elephant.' + this.cluster + '.session.id';
               Cookies.set(cookieName, response.session_id, {
                 expires: inTenHours
               });
-              //setting user
-              this.get("session").setLoggedInUser(username);
-              this.set('showError', false);
-              this.set("errorMessage", '');
-              //Transit to previous route if available or transit to index page
-              this.get('notifications').success("Successful Login!! Now you can modify and submit TuneIn params", {
+              this.get('session').setLoggedInUser(username);
+              this.clearError();
+              this.get('notifications').success('Successful Login!! Now you can modify and submit TuneIn params', {
                 autoClear: true
               });
-              this.transitionToPreviousRoute();
-            } else if (response.hasOwnProperty("error")) {
-                this.set("showError", true);
-                this.set("errorMessage", response.error);
+               this.transitionToPreviousRoute();
+            } else if (response.hasOwnProperty('error')) {
+               this.error(response.error);
             } else {
-                this.set("showError", true);
-                this.set("errorMessage", "Something went wrong while processing your request");
+                this.error('Something went wrong while processing your request');
             }
             this.resetLoginProperties();
           }, (error) => {
               if (error.status === 500) {
-                this.set("showError", true);
-                this.set("errorMessage", "The server was unable to process your request");
+                this.error('The server was unable to process your request');
               } else if (error.responseText) {
-                this.set("showError", true);
-                this.set("errorMessage", error.responseText);
+                this.error(error.responseText);
               }
               this.resetLoginProperties();
           });
@@ -81,31 +72,32 @@ export default Ember.Controller.extend({
   then empty string will be returned */
 
   getValidStringValue(value) {
-    if (typeof(value) === `undefined`) {
-      return '';
-    } else {
-      return value;
-    }
+    return typeof(value) === `undefined` ? '' : value;
   },
 
   //Function to make a transition to previous route or the index route
   transitionToPreviousRoute() {
     let previousTransition = this.get('previousTransition');
     if (previousTransition) {
-      //resetting previous to Null
-      this.set('previousTransition', null);
       previousTransition.retry();
+      this.set('previousTransition', null);
     } else {
       // Default back to homepage
       this.transitionToRoute('index');
     }
   },
-  /*reset the username and password object to empty shown in login page*/
   resetLoginProperties() {
-    // Resetting the properties on login page
     this.setProperties({
       username: '',
       password: ''
     });
+  },
+  error(errorMessage) {
+    this.set('showError', true);
+    this.set('errorMessage', errorMessage);
+  },
+  clearError() {
+    this.set('showError', false);
+    this.set('errorMessage', '');
   }
 })

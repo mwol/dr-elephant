@@ -20,7 +20,7 @@ export default Ember.Component.extend({
   showTuneinRecommendations: false,
   actions: {
     showTuneinDetails() {
-      this.toggleProperty("showTuneinRecommendations"),
+      this.toggleProperty('showTuneinRecommendations'),
       this.sendAction('action', this.get('param'));
     }
   }

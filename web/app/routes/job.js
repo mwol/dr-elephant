@@ -30,16 +30,16 @@ export default Ember.Route.extend({
   model() {
     return Ember.RSVP.hash({
       jobs: this.store.queryRecord('job', {
-        jobid: this.get("jobid")
+        jobid: this.get('jobid')
       }),
       tunein: this.store.queryRecord('tunein', {
-        id: this.get("jobid")
+        id: this.get('jobid')
       })
     });
   },
   doLogin(schedulerUrl, cluster) {
     //confirm if the user want to proceed with login
-    const userWantToLogin = confirm("To perform this action user needs to login. Are you sure to proceed?")
+    const userWantToLogin = confirm('To perform this action user needs to login. Are you sure to proceed?')
     if (userWantToLogin) {
       this.transitionTo('login').then((loginRoute) => {
         loginRoute.controller.set('schedulerUrl', schedulerUrl);
@@ -49,10 +49,10 @@ export default Ember.Route.extend({
   },
   getUserAuthorizationStatus(jobdefid, schedulerUrl, cookieName) {
     let authorizationStatus;
-    const is_authorised_key = "hasWritePermission"
+    const is_authorised_key = 'hasWritePermission'
     $.ajax({
-      url: "/rest/userAuthorization",
-      type: "GET",
+      url: '/rest/userAuthorization',
+      type: 'GET',
       data: {
         sessionId: Cookies.get(cookieName),
         jobDefId: jobdefid,
@@ -60,19 +60,18 @@ export default Ember.Route.extend({
       },
       async: false
     }).then((response) => {
-      if (response.hasOwnProperty("hasWritePermission")) {
-        if (response.hasWritePermission === "true") {
-          authorizationStatus = "authorised";
+      if (response.hasOwnProperty('hasWritePermission')) {
+        if (response.hasWritePermission === 'true') {
+          authorizationStatus = 'authorised';
         } else {
-          authorizationStatus = "unauthorised";
+          authorizationStatus = 'unauthorised';
         }
-    } else if (response.hasOwnProperty("error")) {
-      if (response.error === "session") {
-        console.log("Previous session_id expired, so proceed to login");
-        authorizationStatus = "session_expired";
+    } else if (response.hasOwnProperty('error')) {
+      if (response.error === 'session') {
+        authorizationStatus = 'session_expired';
       } else {
         //Some other error occurred
-        authorizationStatus = "error";
+        authorizationStatus = 'error';
       }
     }
   },
@@ -82,10 +81,10 @@ export default Ember.Route.extend({
           this.showError(error.responseText);
           break;
         case 500:
-          this.showError("The server was unable to process your request");
+          this.showError('The server was unable to process your request');
           break;
         default:
-          this.showError("Something went wrong!!");
+          this.showError('Something went wrong!!');
       }
     });
     return authorizationStatus;
@@ -108,10 +107,10 @@ export default Ember.Route.extend({
       });
     },
     submitUserChanges(job) {
-      const jobDefId = job.get("jobdefid");
-      const schedulerName = job.get("scheduler");
-      const cluster = job.get("cluster");
-      const cookieName = "elephant." + cluster + ".session.id";
+      const jobDefId = job.get('jobdefid');
+      const schedulerName = job.get('scheduler');
+      const cluster = job.get('cluster');
+      const cookieName = 'elephant.' + cluster + '.session.id';
       const scheduler = new Scheduler();
       const schedulerUrl = scheduler.getSchedulerUrl(jobDefId, schedulerName);
       if (!Cookies.get(cookieName)) {
@@ -119,18 +118,18 @@ export default Ember.Route.extend({
       } else {
         var userAuthorizationStatus = this
             .getUserAuthorizationStatus(jobDefId, schedulerUrl, cookieName);
-        if (userAuthorizationStatus === "authorised") {
+        if (userAuthorizationStatus === 'authorised') {
           //call the param change function
-          //clear error for previus attempt if exists
+          //clear error for previous attempt if exists
           this.clearError();
-        } else if (userAuthorizationStatus === "unauthorised") {
-          this.showError("User is not authorised to modify TuneIn details!!");
-        } else if (userAuthorizationStatus === "session_expired") {
+        } else if (userAuthorizationStatus === 'unauthorised') {
+          this.showError('User is not authorised to modify TuneIn details!!');
+        } else if (userAuthorizationStatus === 'session_expired') {
           //Removing the existing session_id Cookie
           Cookies.remove(cookieName);
           this.doLogin(schedulerUrl, cluster);
-        } else if (userAuthorizationStatus === "error") {
-          this.showError("Some error occured while User Authorization!!");
+        } else if (userAuthorizationStatus === 'error') {
+          this.showError('Some error occured while User Authorization!!');
         }
       }
     },

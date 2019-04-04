@@ -19,8 +19,8 @@ import Ember from 'ember';
 export default Ember.Route.extend({
   beforeModel (transition) {
     //abort transition if already logged in
-    if (Cookies.get("elephant.session.id")) {
-      transition.abort()
+    if (Cookies.get('elephant.session.id')) {
+      transition.abort();
     }
   },
   setupController: function(controller, model) {
