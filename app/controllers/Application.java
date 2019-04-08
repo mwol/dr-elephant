@@ -56,7 +56,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.print.attribute.standard.MediaSize;
 import models.AppHeuristicResult;
 import models.AppResult;
 import models.JobDefinition;
@@ -1827,13 +1826,15 @@ public class Application extends Controller {
       tuneIn.addProperty(JOB_SUGGESTED_PARAM_SET_ID, jobSuggestedParamSet.id);
       tuneIn.addProperty(TUNING_ALGORITHM_ID, tuningAlgorithm.id);
       tuneIn.addProperty(AUTO_APPLY, autoApply);
-      tuneIn.addProperty(TUNING_ALGORITH, currentTuningAlgorithm);
+      tuneIn.addProperty(TUNING_ALGORITHM, currentTuningAlgorithm);
       tuneIn.addProperty(REASON_TO_DISABLE_TUNING, reasonForDisablingTuning(tuningJobDefinition));
       tuneIn.add(TUNING_ALGORITHM_LIST, tuningAlgorithmList);
       tuneIn.addProperty(ITERATION_COUNT,tuningJobDefinition.numberOfIterations);
       tuneIn.add(TUNING_PARAMETERS, tuningParameters);
       parent.add(TUNEIN, tuneIn);
-      logger.debug("TuneIn Json: " + tuneIn);
+      if (logger.isDebugEnabled()) {
+        logger.debug("TuneIn Json: " + tuneIn);
+      }
       return ok(new Gson().toJson(parent));
     } catch (Exception ex) {
       logger.error(ex);
@@ -2164,7 +2165,7 @@ public class Application extends Controller {
 
   private static String getOptimizationAlgo(String tuningAlgorithmName) {
     //Currently OBT's default optimization Algo is PSO_IPSO
-    return tuningAlgorithmName.contains(TuningType.OBT.name()) ? AlgorithmType.PSO_IPSO.name() :
+    return tuningAlgorithmName.equals(TuningType.OBT.name()) ? AlgorithmType.PSO_IPSO.name() :
         AlgorithmType.HBT.name();
   }
 
@@ -2292,7 +2293,7 @@ public class Application extends Controller {
     }
   }
 
-  /*
+  /**
    * Returns a Boolean value, true is user changed the tuning parameters' values else return false
    * @return  The Boolean type
    */
@@ -2324,7 +2325,7 @@ public class Application extends Controller {
    */
   private static JsonObject updateJobParams(JsonNode tunein, String jobType) {
     Integer jobDefinitionId = tunein.path(JOB_DEFINTITION_ID).asInt();
-    String optimizationAlgo = getOptimizationAlgo(tunein.path(TUNING_ALGORITH).asText());
+    String optimizationAlgo = getOptimizationAlgo(tunein.path(TUNING_ALGORITHM).asText());
     JsonNode tuningParameters = tunein.path(TUNING_PARAMETERS);
     JobDefinition jobDefinition = JobDefinition.find.select("*")
         .where()

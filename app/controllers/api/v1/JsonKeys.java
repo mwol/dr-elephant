@@ -106,7 +106,7 @@ public class JsonKeys {
   public static final String CURRENT_PARAM_VALUE = "currentParamValue";
   public static final String TUNING_ALGORITHM_ID = "tuningAlgorithmId";
   public static final String AUTO_APPLY = "autoApply";
-  public static final String TUNING_ALGORITH = "tuningAlgorithm";
+  public static final String TUNING_ALGORITHM = "tuningAlgorithm";
   public static final String REASON_TO_DISABLE_TUNING = "reasonForTuningDisable";
   public static final String ITERATION_COUNT = "iterationCount";
   public static final String TUNING_PARAMETERS = "tuningParameters";

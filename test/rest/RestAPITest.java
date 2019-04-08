@@ -1408,7 +1408,7 @@ public class RestAPITest {
     JsonArray tuningAlgorithmList = new JsonArray();
     tunein.addProperty(JOB_DEFINTITION_ID, FAKE_JOB_DEFINITION_ID);
     tunein.addProperty(JOB_SUGGESTED_PARAM_SET_ID, FAKE_JOB_SUGGESTED_PARAM_SET_ID);
-    tunein.addProperty(TUNING_ALGORITH, Constant.TuningType.HBT.name());
+    tunein.addProperty(TUNING_ALGORITHM, Constant.TuningType.HBT.name());
     tunein.addProperty(TUNING_ALGORITHM_ID, 5);
     JsonObject hbtAlgo = new JsonObject();
     hbtAlgo.addProperty(NAME, Constant.TuningType.HBT.name());
