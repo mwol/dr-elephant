@@ -24,6 +24,7 @@ import com.linkedin.drelephant.configurations.scheduler.SchedulerConfigurationDa
 import com.linkedin.drelephant.math.Statistics;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -49,6 +50,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.*;
+
+import static org.apache.commons.io.FileUtils.*;
 
 
 /**
@@ -599,5 +602,42 @@ public final class Utils {
       datasets.add(element);
     }
     return datasets;
+  }
+
+  public static String getAllocatedContainerDisplaySize(long sizeInBytes) {
+    return getContainerDisplaySize(BigInteger.valueOf(sizeInBytes));
+  }
+
+  private static String getContainerDisplaySize(BigInteger sizeInBytes) {
+    int size;
+    String displaySize;
+    if (sizeInBytes.divide(ONE_EB_BI).compareTo(BigInteger.ZERO) > 0) {
+      displaySize = getProperAllocatedSize(sizeInBytes, ONE_EB_BI) + " EB";
+
+    } else if (sizeInBytes.divide(ONE_PB_BI).compareTo(BigInteger.ZERO) > 0) {
+      displaySize = getProperAllocatedSize(sizeInBytes, ONE_PB_BI) + " PB";
+    } else if (sizeInBytes.divide(ONE_TB_BI).compareTo(BigInteger.ZERO) > 0) {
+      displaySize = getProperAllocatedSize(sizeInBytes, ONE_TB_BI) + " TB";
+    } else if (sizeInBytes.divide(ONE_GB_BI).compareTo(BigInteger.ZERO) > 0) {
+      displaySize = getProperAllocatedSize(sizeInBytes, ONE_GB_BI) + " GB";
+    } else if (sizeInBytes.divide(ONE_MB_BI).compareTo(BigInteger.ZERO) > 0) {
+      displaySize = getProperAllocatedSize(sizeInBytes, ONE_MB_BI) + " MB";
+    } else if (sizeInBytes.divide(ONE_KB_BI).compareTo(BigInteger.ZERO) > 0) {
+      displaySize = getProperAllocatedSize(sizeInBytes, ONE_KB_BI) + " KB";
+    } else {
+      displaySize = sizeInBytes + " bytes";
+    }
+
+    return displaySize;
+  }
+
+  private static BigInteger getProperAllocatedSize(BigInteger requestedContainerSize,
+      BigInteger standardSize) {
+    BigInteger[] quotientAndRemainder =
+    requestedContainerSize.divideAndRemainder(standardSize);
+    if (quotientAndRemainder[1].compareTo(BigInteger.ZERO) > 0) {
+      return quotientAndRemainder[0].add(BigInteger.ONE);
+    }
+    return quotientAndRemainder[0];
   }
 }

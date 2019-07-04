@@ -213,7 +213,8 @@ public abstract class GenericMemoryHeuristic implements Heuristic<MapReduceAppli
         Long.toString(taskHUMax / FileUtils.ONE_MB));
     result.addResultDetail(MIN_TOTAL_COMMITTED_HEAP_USAGE_MEMORY.getValue(),
         Long.toString(taskHUMin / FileUtils.ONE_MB));
-    result.addResultDetail("Requested Container Memory", FileUtils.byteCountToDisplaySize(containerMem));
+    result.addResultDetail("Requested Container Memory",
+        Utils.getAllocatedContainerDisplaySize(containerMem));
 
     return result;
   }
