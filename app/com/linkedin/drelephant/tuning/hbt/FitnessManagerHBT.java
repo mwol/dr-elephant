@@ -204,8 +204,12 @@ public class FitnessManagerHBT extends AbstractFitnessManager {
   private boolean disableTuningforHeuristicsPassed(JobDefinition jobDefinition,
       List<TuningJobExecutionParamSet> tuningJobExecutionParamSets, int numberOfAppliedSuggestedParamExecution) {
     //Minimum three execution needed for HBT to do some resource optimization
+    int validSuggestedParamExecutionCountAfterReEnable = TuningHelper.
+        getValidSuggestedParamExecutionCountAfterTuneInReEnable(jobDefinition.id, tuningJobExecutionParamSets);
     if (areHeuristicsPassed(tuningJobExecutionParamSets)
-        && numberOfAppliedSuggestedParamExecution >= MINIMUM_HBT_EXECUTION) {
+        && numberOfAppliedSuggestedParamExecution >= MINIMUM_HBT_EXECUTION &&
+        (validSuggestedParamExecutionCountAfterReEnable != Integer.MAX_VALUE &&
+            validSuggestedParamExecutionCountAfterReEnable >= MINIMUM_HBT_EXECUTION)) {
       disableTuning(jobDefinition, "All Heuristics Passed");
     }
     return true;

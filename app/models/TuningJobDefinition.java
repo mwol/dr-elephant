@@ -118,7 +118,6 @@ public class TuningJobDefinition extends Model {
   @UpdatedTimestamp
   public Timestamp updatedTs;
 
-
   @Column(nullable = true)
   public String tuningDisabledReason;
 

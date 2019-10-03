@@ -87,4 +87,27 @@
     <value>corp.com</value>
     <description>company domain email address</description>
 </property>
+
+
+  <property>
+    <name>re.enable.tunein.allowed</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>min.tunein.disabled.duration.in_days</name>
+    <value>2</value>
+  </property>
+  <property>
+    <name>max.iteration.after.tunein.re_enable</name>
+    <value>5</value>
+  </property>
+  <property>
+    <name>tunein.reenable.wait.interval.ms</name>
+    <value>86400000</value>
+  </property>
+  <property>
+    <name>min.executions.before.tunein.re_enable</name>
+    <value>2</value>
+  </property>
+
 </configuration>

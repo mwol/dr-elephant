@@ -3,6 +3,7 @@ package com.linkedin.drelephant.tuning;
 import com.avaje.ebean.Expr;
 import com.linkedin.drelephant.mapreduce.heuristics.CommonConstantsHeuristic;
 import controllers.AutoTuningMetricsController;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;

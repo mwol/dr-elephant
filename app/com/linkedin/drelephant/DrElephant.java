@@ -16,6 +16,7 @@
 
 package com.linkedin.drelephant;
 
+import com.linkedin.drelephant.tuning.reenablement.TuneInReEnabler;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
@@ -33,19 +34,23 @@ public class DrElephant extends Thread {
   public static final String AUTO_TUNING_ENABLED = "autotuning.enabled";
   public static final String TUNING_WHITELISTING_ENABLED = "tuning.whitelisting.enabled";
   public static final String TUNING_PERFORMANCE_REPORT_ENABLED = "tuning.performance.report.enabled";
+  public static final String TUNEIN_RE_ENABLE_ALLOWED = "re.enable.tunein.allowed";
   private static final Logger logger = Logger.getLogger(DrElephant.class);
 
   private ElephantRunner _elephant;
   private AutoTuner _autoTuner;
   private TuningWhiteListingManager tuningWhiteListingManager;
   private TuningPerformanceReportManager tuningPerformanceReportManager;
+  private TuneInReEnabler _tuneInReEnabler;
   private Thread _autoTunerThread;
   private Thread tuningWhitelistingThread;
   private Thread tuningPerformanceReportThread;
+  private Thread tuneinReEnablementThread;
 
   private Boolean autoTuningEnabled;
   private Boolean tuningWhitelistingEnabled;
   private Boolean tuningPerformanceReportEnabled;
+  private Boolean tuneinReEnablementAllowed;
 
   public DrElephant() throws IOException {
     HDFSContext.load();
@@ -53,6 +58,7 @@ public class DrElephant extends Thread {
     autoTuningEnabled = configuration.getBoolean(AUTO_TUNING_ENABLED, false);
     tuningWhitelistingEnabled = configuration.getBoolean(TUNING_WHITELISTING_ENABLED, false);
     tuningPerformanceReportEnabled = configuration.getBoolean(TUNING_PERFORMANCE_REPORT_ENABLED, false);
+    tuneinReEnablementAllowed = configuration.getBoolean(TUNEIN_RE_ENABLE_ALLOWED, false);
 
     logger.debug("Auto Tuning Configuration: " + configuration.toString());
 
@@ -68,6 +74,10 @@ public class DrElephant extends Thread {
       if (tuningPerformanceReportEnabled) {
         tuningPerformanceReportManager = new TuningPerformanceReportManager();
         tuningPerformanceReportThread = new Thread(tuningPerformanceReportManager, "Tuning Performance Report Thread");
+      }
+      if (tuneinReEnablementAllowed) {
+        _tuneInReEnabler = new TuneInReEnabler();
+        tuneinReEnablementThread = new Thread(_tuneInReEnabler, "Tuning ReEnablement Thread");
       }
     }
   }
@@ -86,6 +96,10 @@ public class DrElephant extends Thread {
       logger.info("Starting Tuning Performance Report Thread");
       tuningPerformanceReportThread.start();
     }
+    if (tuneinReEnablementThread != null) {
+      logger.info("Starting TuneIn Re-Enablement Thread");
+      tuneinReEnablementThread.start();
+    }
     _elephant.run();
   }
 
@@ -101,6 +115,9 @@ public class DrElephant extends Thread {
     }
     if (tuningPerformanceReportThread != null) {
       tuningPerformanceReportThread.interrupt();
+    }
+    if (tuneinReEnablementThread != null) {
+      tuneinReEnablementThread.interrupt();
     }
   }
 }
