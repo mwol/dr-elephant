@@ -24,9 +24,7 @@ import com.linkedin.drelephant.util.Utils;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
-import models.JobDefinition;
 import models.JobSuggestedParamSet;
-import models.TuneInReEnableDetails;
 import models.TuningJobDefinition;
 import models.TuningJobExecutionParamSet;
 import org.apache.commons.lang.StringUtils;
@@ -166,7 +164,12 @@ public class TuneInReEnabler implements Runnable{
     tuningJobDefinition.tuningDisabledReason = StringUtils.EMPTY;
     updateJobSuggestedParamSetForReEnable(tuningJobDefinition);
     tuningJobDefinition.tuningEnabled = true;
-    updateTuneinReEnableDetails(tuningJobDefinition.job);
+    tuningJobDefinition.tuningReEnableTimestamp= new Timestamp(System.currentTimeMillis());
+    if (tuningJobDefinition.tuningReEnablementCount == null) {
+      tuningJobDefinition.tuningReEnablementCount = 1;
+    } else {
+      tuningJobDefinition.tuningReEnablementCount++;
+    }
     tuningJobDefinition.update();
   }
 
@@ -194,33 +197,5 @@ public class TuneInReEnabler implements Runnable{
       bestJobSuggestedParamSet.isParamSetBest = false;
       bestJobSuggestedParamSet.update();
     }
-  }
-
-  private TuneInReEnableDetails getTuneinReEnableDetails(Integer jobDefintionId) {
-    return TuneInReEnableDetails.find.select("*")
-        .where()
-        .eq(TuneInReEnableDetails.TABLE.jobDefinition + "." + JobDefinition.TABLE.id, jobDefintionId)
-        .findUnique();
-  }
-
-  private void updateTuneinReEnableDetails(JobDefinition jobDefinition) {
-    TuneInReEnableDetails tuneInReEnableDetails = getTuneinReEnableDetails(jobDefinition.id);
-    if (tuneInReEnableDetails == null) {
-      createTuneinReEnableDetail(jobDefinition);
-      return;
-    }
-    tuneInReEnableDetails.reEnablementCount = tuneInReEnableDetails.reEnablementCount + 1;
-    logger.info("Updating tunein re-enable details for " + jobDefinition.id);
-    tuneInReEnableDetails.update();
-  }
-
-  private void createTuneinReEnableDetail(JobDefinition jobDefinition) {
-    TuneInReEnableDetails tuneInReEnableDetails = new TuneInReEnableDetails();
-    tuneInReEnableDetails.jobDefinition = jobDefinition;
-    tuneInReEnableDetails.tuneinReEnablementTimestamp = new Timestamp(System.currentTimeMillis());
-    tuneInReEnableDetails.reEnablementCount = (tuneInReEnableDetails.reEnablementCount == null) ? 1 :
-        tuneInReEnableDetails.reEnablementCount + 1;
-    logger.info("Creating tunein re-enable details for job " + jobDefinition.id);
-    tuneInReEnableDetails.save();
   }
 }

@@ -15,15 +15,9 @@
 #
 
 # --- !Ups
-
-CREATE TABLE IF NOT EXISTS tunein_re_enable_details (
-    id int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Id',
-    job_definition_id int(10) unsigned NOT NULL COMMENT 'foreign key from job_definition table',
-    tunein_re_enablement_timestamp timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp when tunein re-enabled for job',
-    re_enablement_count int DEFAULT 1 COMMENT 'Number of times tunein is re-enabled till now',
-    UNIQUE KEY tunein_re_enable_details_u1 (job_definition_id),
-    CONSTRAINT tunein_re_enable_details_f1 FOREIGN KEY (job_definition_id) REFERENCES job_definition (id)
-) ENGINE=InnoDB;
+alter table tuning_job_definition add column tuning_re_enable_timestamp TIMESTAMP;
+alter table tuning_job_definition add column tuning_re_enablement_count INT default 0;
 
 # --- !Downs
-DROP TABLE tune_in_re_enable_details;
+ALTER TABLE tuning_job_definition DROP tuning_re_enable_timestamp;
+ALTER TABLE tuning_job_definition DROP tuning_re_enablement_count;

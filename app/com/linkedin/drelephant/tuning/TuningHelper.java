@@ -9,7 +9,6 @@ import java.util.regex.Pattern;
 import models.JobDefinition;
 import models.JobExecution;
 import models.JobSuggestedParamSet;
-import models.TuneInReEnableDetails;
 import models.TuningAlgorithm;
 import models.TuningJobDefinition;
 import models.TuningJobExecutionParamSet;
@@ -104,7 +103,7 @@ public class TuningHelper {
     int count = 0;
     Timestamp tuneInReEnableTimestamp = getTuneInReEnablementTimestamp(jobDefintionId);
     if (tuneInReEnableTimestamp == null) {
-      logger.info("TuneIn is not re-enabled for " + jobDefintionId);
+      logger.info("TuneIn never re-enabled for " + jobDefintionId);
       return Integer.MAX_VALUE;
     }
     for (TuningJobExecutionParamSet tuningJobExecutionParam : tuningJobExecutionParamSets) {
@@ -120,12 +119,12 @@ public class TuningHelper {
   }
 
   private static Timestamp getTuneInReEnablementTimestamp(Integer jobDefinitionId) {
-    TuneInReEnableDetails tuneInReEnableDetails = TuneInReEnableDetails.find.select("*")
+    TuningJobDefinition tuningJobDefinition = TuningJobDefinition.find.select("*")
         .where()
-        .eq(TuneInReEnableDetails.TABLE.jobDefinition + "." + JobDefinition.TABLE.id,
+        .eq(TuningJobDefinition.TABLE.job + "." + JobDefinition.TABLE.id,
             jobDefinitionId)
         .findUnique();
-    return (tuneInReEnableDetails == null) ? null : tuneInReEnableDetails.tuneinReEnablementTimestamp;
+    return tuningJobDefinition.tuningReEnableTimestamp;
   }
 
   public static boolean isNewParamBestParam(JobSuggestedParamSet jobSuggestedParamSet,

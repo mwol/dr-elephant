@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import models.JobDefinition;
 import models.JobSuggestedParamSet;
-import models.TuneInReEnableDetails;
 import models.TuningJobDefinition;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
@@ -120,11 +119,9 @@ public class TestTuneInReEnabler {
             .findUnique();
         Assert.assertNull(bestJobSuggestedParamSet);
 
-        TuneInReEnableDetails tuneInReEnableDetails = TuneInReEnableDetails.find.select("*")
-            .where()
-            .eq(TuneInReEnableDetails.TABLE.jobDefinition + "." + JobDefinition.TABLE.id, testJobDefintionId_2)
-            .findUnique();
-        Assert.assertEquals(tuneInReEnableDetails.reEnablementCount.intValue(), 2);
+        TuningJobDefinition updatedTuningJobDefinition = getTuningJobDefinition(testJobDefintionId_2);
+        Assert.assertEquals(updatedTuningJobDefinition.tuningReEnablementCount.intValue(), 1);
+        Assert.assertNotNull(updatedTuningJobDefinition.tuningReEnableTimestamp);
       }
     });
   }

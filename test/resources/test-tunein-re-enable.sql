@@ -30,13 +30,13 @@ INSERT INTO `tuning_algorithm` (`job_type`, `optimization_algo`, `optimization_a
 INSERT INTO `tuning_job_definition` (`job_definition_id`, `client`, `tuning_algorithm_id`, `tuning_enabled`, `auto_apply`,
  `average_resource_usage`, `average_execution_time`, `average_input_size_in_bytes`, `allowed_max_resource_usage_percent`,
  `allowed_max_execution_time_percent`, `tuning_disabled_reason`, `number_of_iterations`, `created_ts`, `updated_ts`,
- `show_recommendation_count`) VALUES
+ `show_recommendation_count`, `tuning_re_enable_timestamp`, `tuning_re_enablement_count`) VALUES
  (100149,'azkaban',4,0,0,14.48426667,42.86533333,52739178496,150,150,'All Heuristics Passed',10,'2019-05-29 04:03:38',
- '2019-09-12 18:38:46',9),
+ '2019-09-12 18:38:46',9, null, null),
  (100150,'azkaban',4,0,1,3920.58746667,43.52463333,8200657043456,150,150,'All Heuristics Passed',10,
-'2019-05-29 03:06:47','2019-09-13 19:50:03',31),
+'2019-05-29 03:06:47','2019-09-13 19:50:03',31, null, null),
 (100151,'azkaban',4,0,1,202.07776667,30.99123333,591484944384,150,150,'All Heuristics Passed',10,
-'2019-05-29 13:13:03','2019-09-13 18:27:26',4);
+'2019-05-29 13:13:03','2019-09-13 18:27:26',4, null, null);
 
 INSERT INTO `flow_execution` (`id`, `flow_exec_id`, `flow_exec_url`, `flow_definition_id`, `created_ts`, `updated_ts`) VALUES
 (1573,'https://elephant.linkedin.com:8443/executor?execid=5252291',
@@ -114,6 +114,3 @@ INSERT INTO `tuning_job_execution_param_set` (`job_suggested_param_set_id`, `job
 (1587,2665,1,0,'2019-09-13 16:07:07','2019-09-13 16:07:08'),
 (1588,2667,1,0,'2019-09-13 16:09:06','2019-09-13 16:09:07'),
 (1589,2671,0,0,'2019-09-13 19:12:19','2019-09-13 19:12:19');
-
-INSERT INTO `tunein_re_enable_details` (`id`, `job_definition_id`, `tunein_re_enablement_timestamp`, `re_enablement_count`) VALUES
-(1,100150,'2019-09-26 16:38:25',1);
