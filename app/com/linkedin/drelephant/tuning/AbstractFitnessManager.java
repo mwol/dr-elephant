@@ -1,26 +1,18 @@
 package com.linkedin.drelephant.tuning;
 
-import com.avaje.ebean.Expr;
-import com.linkedin.drelephant.mapreduce.heuristics.CommonConstantsHeuristic;
 import controllers.AutoTuningMetricsController;
-import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import models.AppHeuristicResult;
-import models.AppHeuristicResultDetails;
 import models.AppResult;
 import models.JobDefinition;
 import models.JobExecution;
 import models.JobSuggestedParamSet;
-import models.JobSuggestedParamValue;
-import models.TuningAlgorithm;
 import models.TuningJobDefinition;
 import models.TuningJobExecutionParamSet;
-import models.TuningParameter;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
