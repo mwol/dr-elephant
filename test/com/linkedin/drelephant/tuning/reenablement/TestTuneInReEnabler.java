@@ -73,7 +73,7 @@ public class TestTuneInReEnabler {
       public void run() {
         populateTestData();
         TuneInReEnabler tuneInReEnabler = new TuneInReEnabler();
-        Assert.assertEquals(tuneInReEnabler.getTuneInDisabledJobs().size(), 3);
+        Assert.assertEquals(3, tuneInReEnabler.getTuneInDisabledJobs().size());
       }
     });
   }
@@ -104,13 +104,13 @@ public class TestTuneInReEnabler {
         Assert.assertFalse(tjd.tuningEnabled);
         Assert.assertTrue(tjd.autoApply);
         Assert.assertNotNull(tjd.tuningDisabledReason);
-        Assert.assertEquals(tjd.tuningDisabledReason, ALL_HEURISTICS_PASSED);
+        Assert.assertEquals(ALL_HEURISTICS_PASSED, tjd.tuningDisabledReason);
 
         TuneInReEnabler tuneInReEnabler = new TuneInReEnabler();
         tuneInReEnabler.reEnableAutoTuning(tjd);
         Assert.assertTrue(tjd.tuningEnabled);
         Assert.assertNotNull(tjd.tuningDisabledReason);
-        Assert.assertEquals(tjd.tuningDisabledReason, StringUtils.EMPTY);
+        Assert.assertEquals(StringUtils.EMPTY, tjd.tuningDisabledReason);
 
         JobSuggestedParamSet bestJobSuggestedParamSet = JobSuggestedParamSet.find.select("*")
             .where()
@@ -120,7 +120,7 @@ public class TestTuneInReEnabler {
         Assert.assertNull(bestJobSuggestedParamSet);
 
         TuningJobDefinition updatedTuningJobDefinition = getTuningJobDefinition(testJobDefintionId_2);
-        Assert.assertEquals(updatedTuningJobDefinition.tuningReEnablementCount.intValue(), 1);
+        Assert.assertEquals(1, updatedTuningJobDefinition.tuningReEnablementCount.intValue());
         Assert.assertNotNull(updatedTuningJobDefinition.tuningReEnableTimestamp);
       }
     });

@@ -93,23 +93,23 @@
     <value>1</value>
   </property>
   <property>
-    <name>re.enable.tunein.allowed</name>
+    <name>tuning.re.enable.tunein.allowed</name>
     <value>true</value>
   </property>
   <property>
-    <name>min.tunein.disabled.duration.in_days</name>
+    <name>tuning.min.tunein.disabled.duration.in_days</name>
     <value>14</value>
   </property>
   <property>
-    <name>max.iteration.after.tunein.re_enable</name>
+    <name>tuning.max.iteration.after.tunein.re_enable</name>
     <value>5</value>
   </property>
   <property>
-    <name>tunein.reenable.wait.interval.ms</name>
+    <name>tuning.tunein.reenable.wait.interval.ms</name>
     <value>86400000</value>
   </property>
   <property>
-    <name>min.executions.before.tunein.re_enable</name>
+    <name>tuning.min.executions.before.tunein.re_enable</name>
     <value>14</value>
   </property>
 

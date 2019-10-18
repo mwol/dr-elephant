@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 LinkedIn Corp.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package com.linkedin.drelephant.tuning;
 
 import com.linkedin.drelephant.util.MemoryFormatUtils;
@@ -118,7 +134,7 @@ public class TuningHelper {
     return count;
   }
 
-  private static Timestamp getTuneInReEnablementTimestamp(Integer jobDefinitionId) {
+  public static Timestamp getTuneInReEnablementTimestamp(Integer jobDefinitionId) {
     TuningJobDefinition tuningJobDefinition = TuningJobDefinition.find.select("*")
         .where()
         .eq(TuningJobDefinition.TABLE.job + "." + JobDefinition.TABLE.id,
@@ -234,7 +250,7 @@ public class TuningHelper {
         .findUnique();
   }
 
-  public static List<TuningJobExecutionParamSet> getLastNExecutionParamSets(long jobDefinitionId,
+  public static List<TuningJobExecutionParamSet> getLastNExecutionParamSets(int jobDefinitionId,
       int executionCount) {
     return TuningJobExecutionParamSet.find.select("*")
         .fetch(TuningJobExecutionParamSet.TABLE.jobExecution, "*")
@@ -248,7 +264,7 @@ public class TuningHelper {
         .findList();
   }
 
-  public static JobSuggestedParamSet getDefaultParamSet(long jobDefinitionId) {
+  public static JobSuggestedParamSet getDefaultParamSet(int jobDefinitionId) {
     return JobSuggestedParamSet.find.select("*")
         .where()
         .eq(JobSuggestedParamSet.TABLE.jobDefinition + "." + JobDefinition.TABLE.id,
@@ -259,7 +275,7 @@ public class TuningHelper {
         .findUnique();
   }
 
-  public static JobSuggestedParamSet getBestParamSet(long jobDefinitionId) {
+  public static JobSuggestedParamSet getBestParamSet(int jobDefinitionId) {
     return JobSuggestedParamSet.find.select("*")
         .where()
         .eq(JobSuggestedParamSet.TABLE.jobDefinition + "." + JobDefinition.TABLE.id,

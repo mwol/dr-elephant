@@ -41,13 +41,13 @@ public class TuneInReEnabler implements Runnable{
   private static final int DEFAULT_MIN_TUNEIN_DISABLED_DURATION_IN_DAYS = 14;
   private static final long DEFAULT_TUNEIN_RE_ENABLE_DAEMON_WAIT_INTERVAL = AutoTuner.ONE_DAY;
   private static final String TUNEIN_RE_ENABLE_DAEMON_WAIT_INTERVAL =
-      "tunein.reenable.wait.interval.ms";
+      "tuning.reenable.wait.interval.ms";
   private static final String MIN_EXECUTIONS_BEFORE_TUNEIN_TO_RE_ENABLE =
-      "min.executions.before.tunein.re_enable";
+      "tuning.min.executions.before.tunein.re_enable";
   private static final String MAX_ITERATIONS_AFTER_TUNEIN_RE_ENABLE =
-      "max.iteration.after.tunein.re_enable";
+      "tuning.max.iteration.after.tunein.re_enable";
   private static final String MIN_TUNEIN_DISABLED_DURATION_IN_DAYS_KEY =
-      "min.tunein.disabled.duration.in_days";
+      "tuning.min.tunein.disabled.duration.in_days";
 
   private long waitInterval;
   private int minDurationForTuneinToBeDisabled;

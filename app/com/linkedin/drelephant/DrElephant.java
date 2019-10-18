@@ -34,7 +34,7 @@ public class DrElephant extends Thread {
   public static final String AUTO_TUNING_ENABLED = "autotuning.enabled";
   public static final String TUNING_WHITELISTING_ENABLED = "tuning.whitelisting.enabled";
   public static final String TUNING_PERFORMANCE_REPORT_ENABLED = "tuning.performance.report.enabled";
-  public static final String TUNEIN_RE_ENABLE_ALLOWED = "re.enable.tunein.allowed";
+  public static final String TUNEIN_RE_ENABLE_ALLOWED = "tuning.re.enable.tunein.allowed";
   private static final Logger logger = Logger.getLogger(DrElephant.class);
 
   private ElephantRunner _elephant;

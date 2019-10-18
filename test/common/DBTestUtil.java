@@ -70,6 +70,10 @@ public class DBTestUtil {
     initDBUtil(TEST_TUNEIN_RE_ENABLE_DATA_FILE);
   }
 
+  public static void initTuningHelperTestMockDB() throws IOException, SQLException {
+    initDBUtil(TEST_TUNING_HELPER_DATA_FILE);
+  }
+
   public static void initDBForExceptionFingerPrinting() throws IOException, SQLException {
     initDBUtil(TEST_EXCEPTION_FINGERPRINTING);
   }

@@ -32,6 +32,7 @@ public class TestConstants {
   public static final String TEST_AUTO_TUNING_MR_HBT="test/resources/test-init-MRHBT.sql";
   public static final String TEST_MR_PIG_HBT_PARAMETER_RECOMMENDER = "test/resources/test-pig-hbt.sql";
   public static final String TEST_TUNEIN_RE_ENABLE_DATA_FILE = "test/resources/test-tunein-re-enable.sql";
+  public static final String TEST_TUNING_HELPER_DATA_FILE = "test/resources/test-tuning-helper.sql";
   public static final String TEST_EXCEPTION_FINGERPRINTING = "test/resources/test-exception-fingerprinting.sql";
   public static final int RESPONSE_TIMEOUT = 3000; // milliseconds
 
