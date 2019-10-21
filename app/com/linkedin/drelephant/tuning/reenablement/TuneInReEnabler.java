@@ -81,7 +81,11 @@ public class TuneInReEnabler implements Runnable{
           if (batchSize == 0) {
             batchSize = tuneinDisabledJobList.size();
           }
-          tuneinDisabledJobList.stream().limit(batchSize).collect(Collectors.toList()).forEach(this::reEnableAutoTuning);
+          for (TuningJobDefinition job : tuneinDisabledJobList) {
+            if (batchSize > 0 && reEnableAutoTuning(job)) {
+              batchSize--;
+            }
+          }
         }
         logger.info("Exiting the thread responsible for Re-Enabling TuneIn");
         Thread.sleep(waitInterval);
@@ -100,21 +104,22 @@ public class TuneInReEnabler implements Runnable{
   }
 
   @VisibleForTesting
-  void reEnableAutoTuning(TuningJobDefinition tuningJobDefinition) {
+  boolean reEnableAutoTuning(TuningJobDefinition tuningJobDefinition) {
     logger.info("Analyzing job definition id for TuneIn re-enable " + tuningJobDefinition.job.id);
     if ( tuningJobDefinition.tuningEnabled || !tuningJobDefinition.autoApply ||
         tuningJobDefinition.tuningDisabledReason == null ) {
-      return;
+      return false;
     }
     if (isJobEligibleForTuneInReEnablement(tuningJobDefinition)) {
       logger.info(String.format("%s is eligible for tuning re-enablement", tuningJobDefinition.job.id));
       processReEnablementForTuneIn(tuningJobDefinition);
-      return;
+      return false;
     }
     logger.info("No of valid execution till now " + TuningHelper.getNumberOfValidSuggestedParamExecution(
         TuningHelper.getTuningJobExecutionFromDefinition(tuningJobDefinition.job)
     ));
     logger.info(String.format("%s is not eligible for TuneIn re-enablement", tuningJobDefinition.job.id));
+    return true;
   }
 
   private boolean isJobEligibleForTuneInReEnablement(TuningJobDefinition tuningJobDefinition) {
@@ -135,7 +140,7 @@ public class TuneInReEnabler implements Runnable{
     }
     JobSuggestedParamSet latestSuggestedJobParamSet =
         TuningHelper.getLatestSuggestedJobParamSet(tuningJobDefinition.job.id);
-    long tuneinDisabledEpochTime = latestSuggestedJobParamSet.updatedTs
+    long tuneinDisabledEpochTime = latestSuggestedJobParamSet.createdTs
         .getTime();
     long currentEpochTime = System.currentTimeMillis();
     return (currentEpochTime - tuneinDisabledEpochTime) >= disabledDurationInMs;

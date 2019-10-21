@@ -245,7 +245,7 @@ public class TuningHelper {
         .eq(JobSuggestedParamSet.TABLE.isParamSetSuggested, true)
         .eq(JobSuggestedParamSet.TABLE.paramSetState, JobSuggestedParamSet.ParamSetStatus.FITNESS_COMPUTED)
         .order()
-        .desc(JobSuggestedParamSet.TABLE.updatedTs)
+        .desc(JobSuggestedParamSet.TABLE.createdTs)
         .setMaxRows(1)
         .findUnique();
   }

@@ -122,7 +122,7 @@ public class TestTuningHelper {
         JobSuggestedParamSet jobSuggestedParamSet_2 = TuningHelper.getLatestSuggestedJobParamSet(testJobDefintionId_2);
         assertEquals(2071, jobSuggestedParamSet_1.id.intValue());
         assertEquals(testJobDefintionId_1, jobSuggestedParamSet_1.jobDefinition.id.longValue());
-        assertEquals(2074, jobSuggestedParamSet_2.id.intValue());
+        assertEquals(2076, jobSuggestedParamSet_2.id.intValue());
         assertEquals(testJobDefintionId_2, jobSuggestedParamSet_2.jobDefinition.id.longValue());
       }
     });

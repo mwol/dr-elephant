@@ -15,7 +15,7 @@
 #
 
 # --- !Ups
-alter table tuning_job_definition add column tuning_re_enable_timestamp TIMESTAMP;
+alter table tuning_job_definition add column tuning_re_enable_timestamp TIMESTAMP NULL default NULL;
 alter table tuning_job_definition add column tuning_re_enablement_count INT default 0;
 
 # --- !Downs
