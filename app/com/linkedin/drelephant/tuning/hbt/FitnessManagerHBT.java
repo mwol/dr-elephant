@@ -30,6 +30,7 @@ public class FitnessManagerHBT extends AbstractFitnessManager {
   private final Logger logger = Logger.getLogger(getClass());
   private boolean isDebugEnabled = logger.isDebugEnabled();
   private final int MINIMUM_HBT_EXECUTION = 3;
+  private final int PARAMETER_RETRY_THRESHOLD = 2;
 
   public FitnessManagerHBT() {
     Configuration configuration = ElephantContext.instance().getAutoTuningConf();
@@ -159,6 +160,23 @@ public class FitnessManagerHBT extends AbstractFitnessManager {
   private void handleJobSucceededAfterRetryScenarios(JobSuggestedParamSet jobSuggestedParamSet,
       JobExecution jobExecution) {
     FailureHandlerContext failureHandlerContext = new FailureHandlerContext();
+
+    /**
+     * Adding logic for identifying auto tuning failure for PIG jobs. Due to unavailability of
+     * exception fingerprinting for PIG, this is the criteria we are opting to
+     * identify auto tuning failure : param set is retried >= 2 times
+     */
+    TuningJobDefinition tuningJobDefinition = TuningHelper.getTuningJobDefinitionFromExecution(jobExecution);
+
+    if (tuningJobDefinition.tuningAlgorithm.jobType == TuningAlgorithm.JobType.PIG) {
+      List<TuningJobExecutionParamSet> tuningJobExecutionParamSets =
+          TuningHelper.getTuningJobExecutionFromParamSet(jobSuggestedParamSet);
+
+      if (tuningJobExecutionParamSets.size() >= PARAMETER_RETRY_THRESHOLD) {
+        jobExecution.autoTuningFault = true;
+      }
+    }
+
     if (jobExecution.autoTuningFault) {
       logger.info(" Job execution was failed because of autotuning but retry worked" + jobExecution.id);
       failureHandlerContext.setFailureHandler(new AutoTuningFailureHandler());
@@ -191,7 +209,9 @@ public class FitnessManagerHBT extends AbstractFitnessManager {
         if (disableTuningforUserSpecifiedIterations(jobDefinition, numberOfValidSuggestedParamExecution)
             || disableTuningforHeuristicsPassed(jobDefinition, tuningJobExecutionParamSets,
             numberOfValidSuggestedParamExecution)) {
-          logger.debug(" Tuning Disabled for Job " + jobDefinition.id);
+          if (isDebugEnabled) {
+            logger.debug(" Tuning Disabled for Job " + jobDefinition.id);
+          }
         }
       } catch (Exception e) {
         logger.error(" Error while disabling tuneIn for job " + jobDefinition.id, e);
@@ -211,8 +231,9 @@ public class FitnessManagerHBT extends AbstractFitnessManager {
         (validSuggestedParamExecutionCountAfterReEnable != Integer.MAX_VALUE &&
             validSuggestedParamExecutionCountAfterReEnable >= MINIMUM_HBT_EXECUTION)) {
       disableTuning(jobDefinition, "All Heuristics Passed");
+      return true;
     }
-    return true;
+    return false;
   }
 
   private boolean areHeuristicsPassed(List<TuningJobExecutionParamSet> tuningJobExecutionParamSets) {
@@ -253,10 +274,10 @@ public class FitnessManagerHBT extends AbstractFitnessManager {
         return true;
       }
     }
-    return checkHeuriticsforSeverity(heuristicsWithHighSeverity);
+    return checkHeuristicsForSeverity(heuristicsWithHighSeverity);
   }
 
-  private boolean checkHeuriticsforSeverity(List<String> heuristicsWithHighSeverity) {
+  private boolean checkHeuristicsForSeverity(List<String> heuristicsWithHighSeverity) {
     if (heuristicsWithHighSeverity.size() == 0) {
       logger.debug(" No severe heursitics ");
       return true;

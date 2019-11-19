@@ -88,7 +88,6 @@
     <description>company domain email address</description>
 </property>
 
-
   <property>
     <name>tuning.re.enable.tunein.allowed</name>
     <value>true</value>
@@ -109,5 +108,10 @@
     <name>tuning.min.executions.before.tunein.re_enable</name>
     <value>2</value>
   </property>
-
+  
+  <property>
+    <name>tuning.stale.data.timeout.ms</name>
+    <value>172800000</value>
+    <description>Generalized timeout property for data update</description>
+  </property>
 </configuration>

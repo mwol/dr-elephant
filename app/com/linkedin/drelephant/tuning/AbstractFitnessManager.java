@@ -278,7 +278,7 @@ public abstract class AbstractFitnessManager implements Manager {
 
       return tuningJobDefinitionNew != null && tuningJobDefinitionNew.tuningEnabled;
     } else {
-      return tuningJobDefinition != null && tuningJobDefinition.tuningEnabled;
+      return tuningJobDefinition.tuningEnabled;
     }
   }
 
@@ -294,6 +294,8 @@ public abstract class AbstractFitnessManager implements Manager {
       tuningJobDefinition.tuningEnabled = false;
       tuningJobDefinition.tuningDisabledReason = reason;
       tuningJobDefinition.save();
+      logger.info(String.format("Disabled TuneIn for %d as %s", tuningJobDefinition.job.id,
+          tuningJobDefinition.tuningDisabledReason));
     }
   }
 
