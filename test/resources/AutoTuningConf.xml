@@ -89,15 +89,15 @@
 </property>
 
   <property>
-    <name>tuning.re.enable.tunein.allowed</name>
+    <name>tuning.re_enable.allowed</name>
     <value>true</value>
   </property>
   <property>
-    <name>tuning.min.tunein.disabled.duration.in_days</name>
+    <name>tuning.min.disabled.duration.in_days</name>
     <value>2</value>
   </property>
   <property>
-    <name>tuning.max.iteration.after.tunein.re_enable</name>
+    <name>tuning.max.iteration.after.re_enable</name>
     <value>5</value>
   </property>
   <property>
@@ -105,10 +105,10 @@
     <value>86400000</value>
   </property>
   <property>
-    <name>tuning.min.executions.before.tunein.re_enable</name>
+    <name>tuning.min.executions.before.re_enable</name>
     <value>2</value>
   </property>
-  
+
   <property>
     <name>tuning.stale.data.timeout.ms</name>
     <value>172800000</value>
