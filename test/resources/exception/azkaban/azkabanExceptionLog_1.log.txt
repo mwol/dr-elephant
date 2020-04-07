@@ -1,0 +1,59 @@
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 20/04/01 21:51:15 INFO yarn.Client: Deleted staging directory hdfs://default.linkedin.com:9000
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - Exception in thread "main" java.lang.reflect.UndeclaredThrowableException
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1769)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at com.linkedin.spark.wrapper.HadoopSecureSparkWrapper.main(HadoopSecureSparkWrapper.java:114)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - Caused by: org.apache.spark.SparkException: Application application_1584565458783_12345678 finished with failed status
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at org.apache.spark.deploy.yarn.Client.run(Client.scala:1160)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at org.apache.spark.deploy.yarn.YarnClusterApplication.start(Client.scala:1519)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at org.apache.spark.deploy.SparkSubmit$.org$apache$spark$deploy$SparkSubmit$$runMain(SparkSubmit.scala:943)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at org.apache.spark.deploy.SparkSubmit$.doRunMain$1(SparkSubmit.scala:199)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at org.apache.spark.deploy.SparkSubmit$.submit(SparkSubmit.scala:229)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at org.apache.spark.deploy.SparkSubmit$.main(SparkSubmit.scala:138)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at com.linkedin.spark.wrapper.HadoopSecureSparkWrapper.runSpark(HadoopSecureSparkWrapper.java:165)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at com.linkedin.spark.wrapper.HadoopSecureSparkWrapper.access$000(HadoopSecureSparkWrapper.java:70)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at com.linkedin.spark.wrapper.HadoopSecureSparkWrapper$1.run(HadoopSecureSparkWrapper.java:118)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at com.linkedin.spark.wrapper.HadoopSecureSparkWrapper$1.run(HadoopSecureSparkWrapper.java:114)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at java.security.AccessController.doPrivileged(Native Method)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at javax.security.auth.Subject.doAs(Subject.java:422)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1754)
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 	... 1 more
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - 20/04/06 21:51:15 INFO util.ShutdownHookManager: Shutdown hook called
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - Process with id 19328 completed unsuccessfully in 76 seconds.
+01-04-2020 14:51:15 PDT overwriter-reminder2 ERROR - caught error running the job
+java.lang.RuntimeException: azkaban.jobExecutor.utils.process.ProcessFailureException: Process exited with code 1
+	at azkaban.jobExecutor.ProcessJob.run(ProcessJob.java:312)
+	at azkaban.jobtype.AbstractHadoopJavaProcessJob.run(AbstractHadoopJavaProcessJob.java:50)
+	at com.linkedin.spark.HadoopSparkJob.runSparkJob(HadoopSparkJob.java:321)
+	at com.linkedin.spark.HadoopSparkJob.run(HadoopSparkJob.java:297)
+	at azkaban.execapp.JobRunner.runJob(JobRunner.java:817)
+	at azkaban.execapp.JobRunner.doRun(JobRunner.java:602)
+	at azkaban.execapp.JobRunner.run(JobRunner.java:563)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: azkaban.jobExecutor.utils.process.ProcessFailureException: Process exited with code 1
+	at azkaban.jobExecutor.utils.process.AzkabanProcess.run(AzkabanProcess.java:125)
+	at azkaban.jobExecutor.ProcessJob.run(ProcessJob.java:304)
+	... 11 more
+01-04-2020 14:51:15 PDT overwriter-reminder2 ERROR - Job run failed!
+java.lang.RuntimeException: azkaban.jobExecutor.utils.process.ProcessFailureException: Process exited with code 1
+	at azkaban.jobExecutor.ProcessJob.run(ProcessJob.java:312)
+	at azkaban.jobtype.AbstractHadoopJavaProcessJob.run(AbstractHadoopJavaProcessJob.java:50)
+	at com.linkedin.spark.HadoopSparkJob.runSparkJob(HadoopSparkJob.java:321)
+	at com.linkedin.spark.HadoopSparkJob.run(HadoopSparkJob.java:297)
+	at azkaban.execapp.JobRunner.runJob(JobRunner.java:817)
+	at azkaban.execapp.JobRunner.doRun(JobRunner.java:602)
+	at azkaban.execapp.JobRunner.run(JobRunner.java:563)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: azkaban.jobExecutor.utils.process.ProcessFailureException: Process exited with code 1
+	at azkaban.jobExecutor.utils.process.AzkabanProcess.run(AzkabanProcess.java:125)
+	at azkaban.jobExecutor.ProcessJob.run(ProcessJob.java:304)
+	... 11 more
+01-04-2020 14:51:15 PDT overwriter-reminder2 ERROR - azkaban.jobExecutor.utils.process.ProcessFailureException: Process exited with code 1 cause: azkaban.jobExecutor.utils.process.ProcessFailureException: Process exited with code 1
+01-04-2020 14:51:15 PDT overwriter-reminder2 INFO - Finishing job overwriter-reminder2 at 1586209875715 with status FAILED

@@ -85,4 +85,13 @@ public interface WorkflowClient {
    * @return The exeception encountered
    */
   public LoggingEvent getJobException(String jobId);
+
+  /**
+   * Get the logs for a job, given a job id, start offset and max length
+   * @param jobId The id of the job
+   * @param offset Start offset for the job logs
+   * @param maxLength Max length of log needed
+   * @return The job logs
+   */
+  public String getAzkabanJobLog(String jobId, String offset, String maxLength);
 }

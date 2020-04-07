@@ -125,6 +125,7 @@ public class ExceptionFingerprintingSpark implements ExceptionFingerprinting {
     String NOT_AVAILABLE = "Not Available";
     ExceptionInfo jobDiagnosticsInfo = new ExceptionInfo();
     jobDiagnosticsInfo.setExceptionName(exceptionName);
+    jobDiagnosticsInfo.setExceptionSource(ExceptionSource.DRIVER);
     if (Strings.isNullOrEmpty(jobDiagnostics)) {
       jobDiagnosticsInfo.setExceptionStackTrace(NOT_AVAILABLE);
       //Since No job diagnostic message is present so show this at bottom of results

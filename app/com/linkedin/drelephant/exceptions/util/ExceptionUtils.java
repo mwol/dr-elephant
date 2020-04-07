@@ -124,6 +124,8 @@ public class ExceptionUtils {
     public static EFConfiguration<String[]> REGEX_FOR_EXCEPTION_IN_LOGS = null;
     public static EFConfiguration<String[]> REGEX_FOR_PARTIAL_EXCEPTION_PATTERN_IN_TONY_LOGS = null;
     public static EFConfiguration<String[]> REGEX_FOR_EXACT_EXCEPTION_PATTERN_IN_TONY_LOGS = null;
+    public static EFConfiguration<String[]> REGEX_FOR_EXCEPTION_PATTERN_IN_AZKABAN_LOGS = null;
+    public static EFConfiguration<String[]> REGEX_FOR_REDUNDANT_LOG_PATTERN_IN_AZKABAN_LOGS = null;
     public static EFConfiguration<String[]> REGEX_AUTO_TUNING_FAULT = null;
     public static EFConfiguration<Integer> THRESHOLD_LOG_LINE_LENGTH = null;
     public static EFConfiguration<Integer> NUMBER_OF_EXCEPTION_TO_PUT_IN_DB = null;
@@ -133,6 +135,10 @@ public class ExceptionUtils {
     public static EFConfiguration<Integer> NUMBER_OF_RETRIES_FOR_FETCHING_DRIVER_LOGS = null;
     public static EFConfiguration<Integer> DURATION_FOR_THREAD_SLEEP_FOR_FETCHING_DRIVER_LOGS = null;
     public static EFConfiguration<Integer> TOTAL_LENGTH_OF_LOG_SAVED_IN_DB = null;
+    public static EFConfiguration<Integer> AZKABAN_JOB_LOG_START_OFFSET = null;
+    public static EFConfiguration<Integer> AZKABAN_JOB_LOG_MAX_LENGTH = null;
+    public static EFConfiguration<Boolean> SHOULD_PROCESS_AZKABAN_LOG = null;
+
 
     private static final String[] DEFAULT_REGEX_FOR_EXCEPTION_IN_LOGS =
         {"^.+Exception.*", "^.+Error.*", ".*Container\\s+killed.*"};
@@ -153,6 +159,12 @@ public class ExceptionUtils {
                 + "((\nResourceExhaustedError \\(see above for traceback\\):.+\n(.+\n?)*))?"
                 + "((\n(WARNING.+\\n?\\n?)*)\n(Traceback \\(most recent call last\\)):\n(.+\n?)*)?",
             "(?m)^(Traceback \\(most recent call last\\)):\n(.+\n?)*"};
+
+    private static final String[] DEFAULT_EXCEPTION_PATTERN_REGEX_IN_AZKABAN_LOGS =
+        {"(?m)(^.+Exception((.+)?\n))(\t+at .+\n?)+(Caused by:.+\n(\t+at.+\n?)+)?"};
+
+    private static final String[] DEFAULT_REDUNDANT_LOG_PATTERN_REGEX_IN_AZKABAN_LOGS =
+        {"(?m)(^\\d{2}-\\d{2}-\\d{4} (\\d{2}:?){3} [A-Z]{3} .+ (INFO|WARN|DEBUG) - )"};
 
     public static void buildConfigurations(Configuration configuration) {
       FIRST_THRESHOLD_LOG_LENGTH_IN_BYTES =
@@ -227,6 +239,21 @@ public class ExceptionUtils {
                   DEFAULT_EXACT_EXCEPTION_PATTERN_REGEX_IN_TONY_LOGS))
               .setDoc("These are the regex for partial exception patterns in TONY logs");
 
+      REGEX_FOR_EXCEPTION_PATTERN_IN_AZKABAN_LOGS =
+          new com.linkedin.drelephant.exceptions.util.EFConfiguration<String[]>().setConfigurationName(
+              REGEX_FOR_EXCEPTION_PATTERN_IN_AZKABAN_LOGS_KEY)
+              .setValue(configuration.getStrings(REGEX_FOR_EXCEPTION_PATTERN_IN_AZKABAN_LOGS_KEY,
+                  DEFAULT_EXCEPTION_PATTERN_REGEX_IN_AZKABAN_LOGS))
+              .setDoc("These are the regex for exception patterns in Azkaban job logs");
+
+      REGEX_FOR_REDUNDANT_LOG_PATTERN_IN_AZKABAN_LOGS =
+          new com.linkedin.drelephant.exceptions.util.EFConfiguration<String[]>().setConfigurationName(
+              REGEX_FOR_REDUNDANT_LOG_PATTERN_IN_AZKABAN_LOGS_CONFIG_NAME)
+              .setValue(configuration.getStrings(REGEX_FOR_REDUNDANT_LOG_PATTERN_IN_AZKABAN_LOGS_CONFIG_NAME,
+                  DEFAULT_REDUNDANT_LOG_PATTERN_REGEX_IN_AZKABAN_LOGS))
+              .setDoc("These are the regex patterns for redundant/not_useful log in Azkaban job logs for exception"
+                  + "fingerprinting");
+
       REGEX_AUTO_TUNING_FAULT = new EFConfiguration<String[]>().setConfigurationName(REGEX_AUTO_TUNING_FAULT_NAME)
           .setValue(configuration.getStrings(REGEX_AUTO_TUNING_FAULT_NAME, DEFAULT_REGEX_AUTO_TUNING_FAULT))
           .setDoc("These are the regex used to tag failure to auto tuning fault");
@@ -276,6 +303,21 @@ public class ExceptionUtils {
               .setValue(configuration.getInt(TOTAL_LENGTH_OF_LOG_SAVED_IN_DB_NAME, 9500))
               .setDoc(" Length of logs saved in db . Buffer size is 500 . It means string of length of "
                   + "this configuration will be stored in db which have size TOTAL_LENGTH_OF_LOG_SAVED_IN_DB+ 500");
+
+      AZKABAN_JOB_LOG_START_OFFSET =
+          new EFConfiguration<Integer>().setConfigurationName(AZKABAN_JOB_LOG_START_OFFSET_CONFIG_KEY)
+              .setValue(configuration.getInt(AZKABAN_JOB_LOG_START_OFFSET_CONFIG_KEY, 0))
+              .setDoc("Azkaban Job log start offset for analyzing the exceptions");
+
+      AZKABAN_JOB_LOG_MAX_LENGTH =
+          new EFConfiguration<Integer>().setConfigurationName(AZKABAN_JOB_LOG_MAX_LENGTH_CONFIG_KEY)
+              .setValue(configuration.getInt(AZKABAN_JOB_LOG_MAX_LENGTH_CONFIG_KEY, 99999999))
+              .setDoc("Max length of Azkaban job log to fetch for analyzing the exceptions, Default to 100MB");
+
+      SHOULD_PROCESS_AZKABAN_LOG =
+          new EFConfiguration<Boolean>().setConfigurationName(SHOULD_PROCESS_AZKABAN_LOG_CONFIG_NAME)
+              .setValue(configuration.getBoolean(SHOULD_PROCESS_AZKABAN_LOG_CONFIG_NAME, true))
+              .setDoc("Config to make parsing Azkaban logs optional");
 
       if (debugEnabled) {
         logger.debug(" Exception Fingerprinting configurations ");

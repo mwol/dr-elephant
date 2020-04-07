@@ -59,6 +59,10 @@ public final class Constant {
       "ef.tony.exact.regex.for.exception";
   public static final String REGEX_FOR_PARTIAL_EXCEPTION_PATTERN_IN_TONY_LOGS_KEY =
       "ef.tony.partial.pattern.regex.for.exception";
+  public static final String REGEX_FOR_EXCEPTION_PATTERN_IN_AZKABAN_LOGS_KEY =
+      "ef.azkaban.regex.for.exception.pattern";
+  public static final String REGEX_FOR_REDUNDANT_LOG_PATTERN_IN_AZKABAN_LOGS_CONFIG_NAME =
+      "ef.azkaban.regex.redundant.log.pattern";
   public static final String REGEX_AUTO_TUNING_FAULT_NAME = "ef.regex.for.autotuning.fault";
   public static final String FIRST_THRESHOLD_LOG_LENGTH_NAME = "ef.first.threshold.loglength";
   public static final String LAST_THRESHOLD_LOG_LENGTH_NAME = "ef.last.threshold.loglength";
@@ -76,4 +80,7 @@ public final class Constant {
   static final String NUMBER_OF_RETRIES_FOR_FETCHING_DRIVER_LOGS_NAME = "ef.number.retries.fetching.driver.logs";
   static final String DURATION_FOR_THREAD_SLEEP_FOR_FETCHING_DRIVER_LOGS_NAME = "ef.duration.thread.sleep.ms";
   static final String TOTAL_LENGTH_OF_LOG_SAVED_IN_DB_NAME = "ef.loglength.saved.db" ;
+  static final String AZKABAN_JOB_LOG_START_OFFSET_CONFIG_KEY = "ef.azkaban.job.log.start.offset" ;
+  static final String AZKABAN_JOB_LOG_MAX_LENGTH_CONFIG_KEY = "ef.azkaban.job.log.max.length" ;
+  static final String SHOULD_PROCESS_AZKABAN_LOG_CONFIG_NAME = "ef.azkaban.log.processing.enable" ;
 }

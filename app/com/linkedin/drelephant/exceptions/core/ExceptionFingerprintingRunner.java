@@ -22,23 +22,17 @@ import com.linkedin.drelephant.analysis.HadoopApplicationData;
 import com.linkedin.drelephant.exceptions.ExceptionFingerprinting;
 import com.linkedin.drelephant.exceptions.HadoopException;
 import com.linkedin.drelephant.exceptions.TonYExceptionFingerprinting;
+import com.linkedin.drelephant.exceptions.azkaban.AzkabanExceptionLogAnalyzer;
 import com.linkedin.drelephant.exceptions.util.ExceptionInfo;
-import com.linkedin.drelephant.exceptions.util.ExceptionUtils;
-import com.linkedin.drelephant.tuning.ExecutionEngine;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.persistence.PersistenceException;
 import models.AppResult;
 import models.JobsExceptionFingerPrinting;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import static com.linkedin.drelephant.exceptions.util.Constant.*;
@@ -82,6 +76,9 @@ public class ExceptionFingerprintingRunner implements Runnable {
         ExceptionFingerprinting exceptionFingerprinting =
             ExceptionFingerprintingFactory.getExceptionFingerprinting(executionType, data);
         List<ExceptionInfo> exceptionInfos = exceptionFingerprinting.processRawData(_analyticJob);
+        if (SHOULD_PROCESS_AZKABAN_LOG.getValue() && exceptionInfos.size() <= 1) {
+          exceptionInfos.addAll(getAzkabanExceptionInfoResults());
+        }
         saveDriverExceptionLogForExceptionFingerPrinting(exceptionInfos, exceptionFingerprinting.getExceptionLogSourceInformation());
         LogClass logClass = exceptionFingerprinting.classifyException(exceptionInfos);
         boolean isAutoTuningFault = false;
@@ -100,6 +97,21 @@ public class ExceptionFingerprintingRunner implements Runnable {
     logger.info("Total time spent in exception fingerprinting in  " + _analyticJob.getAppId() + " "
           + (endTime - startTime) * 1.0 / (1000000000.0) + "s");
 
+  }
+
+  private List<ExceptionInfo> getAzkabanExceptionInfoResults() {
+    List<ExceptionInfo> azkabanExceptionInfo = new ArrayList<>();
+    try {
+      logger.info("Fetching Azkaban logs for job " + _appResult.jobExecUrl);
+      AzkabanExceptionLogAnalyzer azkabanExceptionLogAnalyzer =
+          new AzkabanExceptionLogAnalyzer(_appResult.flowExecUrl, _appResult.jobExecUrl);
+      azkabanExceptionInfo = azkabanExceptionLogAnalyzer.getExceptionInfoList();
+      logger.info(String.format("Size of exception info list for Azkaban job %s is %d", _appResult.jobExecUrl,
+          azkabanExceptionInfo.size()));
+    } catch (Exception ex) {
+      logger.error("Couldn't find exception infos from Azkaban logs", ex);
+    }
+    return azkabanExceptionInfo;
   }
 
   /**

@@ -17,13 +17,14 @@ package com.linkedin.drelephant.exceptions;
 
 import com.google.common.base.Strings;
 import com.linkedin.drelephant.analysis.AnalyticJob;
+import com.linkedin.drelephant.exceptions.azkaban.AzkabanExceptionLogAnalyzer;
 import com.linkedin.drelephant.exceptions.util.ExceptionInfo;
+import com.linkedin.drelephant.util.Utils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -61,6 +62,7 @@ public class TonYExceptionFingerprinting {
     this._analyticJob = analyticJob;
     this._appResult = appResult;
   }
+
   /**
    * Method to initiate Exception FingerPrinting for application
    */
@@ -144,9 +146,25 @@ public class TonYExceptionFingerprinting {
     relevantLogSnippets.addAll(filterOutExactExceptionPattern(logData,
         logLocationUrl));
     relevantLogSnippets.addAll(filterOutPartialExceptionPattern(logData, logLocationUrl));
+    //If no logs or onl Job Diagnostic found then check for Azkaban logs
+    if (SHOULD_PROCESS_AZKABAN_LOG.getValue() && relevantLogSnippets.size() == 0) {
+      relevantLogSnippets.addAll(getAzkabanExceptionInfoResults());
+    }
     return relevantLogSnippets;
   }
 
+  private List<ExceptionInfo> getAzkabanExceptionInfoResults() {
+    List<ExceptionInfo> azkabanExceptionInfo = new ArrayList<>();
+    try {
+      logger.info("Fetching Azkaban logs for " + _appResult.jobExecUrl);
+      AzkabanExceptionLogAnalyzer azkabanExceptionLogAnalyzer =
+          new AzkabanExceptionLogAnalyzer(_appResult.flowExecUrl, _appResult.jobExecUrl);
+      azkabanExceptionInfo = azkabanExceptionLogAnalyzer.getExceptionInfoList();
+    } catch (Exception ex) {
+      logger.error("Couldn't find exception infos from Azkaban logs", ex);
+    }
+    return azkabanExceptionInfo;
+  }
 
   /**
    * Find and collect out exception stackTraces matching to very well defined Pattern which
@@ -166,7 +184,7 @@ public class TonYExceptionFingerprinting {
           exceptionInfo.setExceptionID(exact_exception_pattern_matcher.group(0).hashCode());
           exceptionInfo.setExceptionName(exact_exception_pattern_matcher.group(1));
           exceptionInfo.setExceptionSource(ExceptionInfo.ExceptionSource.DRIVER);
-          exceptionInfo.setExceptionStackTrace(truncateStackTrace(exact_exception_pattern_matcher.group(0),
+          exceptionInfo.setExceptionStackTrace(Utils.truncateStackTrace(exact_exception_pattern_matcher.group(0),
               MAX_NUMBER_OF_STACKTRACE_LINE_TONY.getValue()));
           exceptionInfo.setExceptionTrackingURL(logLocationURL + LOG_START_OFFSET_PARAM +
               exact_exception_pattern_matcher.start());
@@ -247,27 +265,27 @@ public class TonYExceptionFingerprinting {
    * @return logData: Parse the response and filter out the log part as string
    */
   private String fetchLogDataFromContainer(String containerURL) {
-      try {
-        logger.info("Fetching log data from URL " + containerURL);
-        URL amAddress = new URL(containerURL);
-        HttpURLConnection connection = (HttpURLConnection) amAddress.openConnection();
-        connection.connect();
-        if (connection.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST) {
-          logger.warn("Request to fetch container log not successful " + IOUtils.toString(connection.
-              getErrorStream()));
-          return StringUtils.EMPTY;
-        }
-        InputStream inputStream = connection.getInputStream();
-        String responseString = IOUtils.toString(inputStream);
-        String logDataString = filterOutLogsFromHTMLResponse(responseString);
-        logDataString = StringEscapeUtils.unescapeHtml4(logDataString);
-        inputStream.close();
-        connection.disconnect();
-        return logDataString;
-      } catch (IOException ex) {
-        logger.error("Error occurred while fetching log data from " + containerURL, ex);
+    try {
+      logger.info("Fetching log data from URL " + containerURL);
+      URL amAddress = new URL(containerURL);
+      HttpURLConnection connection = (HttpURLConnection) amAddress.openConnection();
+      connection.connect();
+      if (connection.getResponseCode() >= HttpURLConnection.HTTP_BAD_REQUEST) {
+        logger.warn("Request to fetch container log not successful " + IOUtils.toString(connection.
+            getErrorStream()));
+        return StringUtils.EMPTY;
       }
-      return null;
+      InputStream inputStream = connection.getInputStream();
+      String responseString = IOUtils.toString(inputStream);
+      String logDataString = filterOutLogsFromHTMLResponse(responseString);
+      logDataString = StringEscapeUtils.unescapeHtml4(logDataString);
+      inputStream.close();
+      connection.disconnect();
+      return logDataString;
+    } catch (IOException ex) {
+      logger.error("Error occurred while fetching log data from " + containerURL, ex);
+    }
+    return null;
   }
 
   /**
@@ -275,7 +293,7 @@ public class TonYExceptionFingerprinting {
    * @param htmlResponse reponse from RM API
    * @return Logs data
    */
-  private String filterOutLogsFromHTMLResponse(String htmlResponse)  {
+  private String filterOutLogsFromHTMLResponse(String htmlResponse) {
     String regex_for_pattern_of_logs_in_html_response = "<pre>([\\s\\S]+)</pre>";
     Matcher logPatternMatcher = Pattern.compile(regex_for_pattern_of_logs_in_html_response).matcher(htmlResponse);
     StringBuilder logData = new StringBuilder();
@@ -331,15 +349,5 @@ public class TonYExceptionFingerprinting {
     }
     exceptionIdSet.add(exceptionStackTrace);
     return false;
-  }
-
-  /**
-   * @param stackTrace String containing stackTrace of exception seperated by new line
-   * @param limit maximum number of lines required in stackTrace
-   * @return stackTrace with given number of lines or less
-   */
-  private String truncateStackTrace(String stackTrace, int limit) {
-    List<String> stackTraceSplitList = Arrays.asList(stackTrace.split("\n"));
-    return String.join("\n", stackTraceSplitList.subList(0, Math.min(limit, stackTraceSplitList.size())));
   }
 }

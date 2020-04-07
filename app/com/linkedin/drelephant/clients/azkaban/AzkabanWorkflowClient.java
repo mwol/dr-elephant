@@ -521,7 +521,7 @@ public class AzkabanWorkflowClient implements WorkflowClient {
    * @param length Maximum limit on length of log
    * @return Azkaban job log in the form of string
    */
-   private String getAzkabanJobLog(String jobId, String offset, String length) {
+   public String getAzkabanJobLog(String jobId, String offset, String length) {
     List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
     urlParameters.add(new BasicNameValuePair("session.id", _sessionId));
     urlParameters.add(new BasicNameValuePair("ajax", "fetchExecJobLogs"));

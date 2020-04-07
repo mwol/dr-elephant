@@ -257,6 +257,16 @@ public final class Utils {
   }
 
   /**
+   * @param stackTrace String containing stackTrace of exception seperated by new line
+   * @param limit maximum number of lines required in stackTrace
+   * @return stackTrace with given number of lines or less
+   */
+  public static String truncateStackTrace(String stackTrace, int limit) {
+    List<String> stackTraceSplitList = Arrays.asList(stackTrace.split("\n"));
+    return String.join("\n", stackTraceSplitList.subList(0, Math.min(limit, stackTraceSplitList.size())));
+  }
+
+  /**
    * Convert a millisecond duration to a string format
    *
    * @param millis A duration to convert to a string form
