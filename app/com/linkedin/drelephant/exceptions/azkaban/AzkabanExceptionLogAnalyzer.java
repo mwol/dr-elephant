@@ -16,6 +16,7 @@
 
 package com.linkedin.drelephant.exceptions.azkaban;
 
+import com.google.common.base.Strings;
 import com.linkedin.drelephant.clients.WorkflowClient;
 import com.linkedin.drelephant.configurations.scheduler.SchedulerConfigurationData;
 import com.linkedin.drelephant.exceptions.util.ExceptionInfo;
@@ -63,12 +64,18 @@ public class AzkabanExceptionLogAnalyzer {
   }
 
   private void init() {
+    long startTime = System.currentTimeMillis();
     String jobId = getJobName(jobExecUrl);
     _workflowClient = getWorkflowClient(flowExecUrl);
     logger.info("Fetching job logs from Azkaban for " + jobExecUrl);
     String jobLog = _workflowClient.getAzkabanJobLog(jobId, AZKABAN_JOB_LOG_START_OFFSET.getValue()
         .toString(), AZKABAN_JOB_LOG_MAX_LENGTH.getValue().toString());
+    if (Strings.isNullOrEmpty(jobLog)) {
+      logger.info("No logs couldn't be gathered from Azkaban for job " + jobExecUrl);
+    }
     analyzeJobLog(processJobLog(jobLog));
+    logger.info(String.format("Time spent on fetching and analyzing Azkaban logs for %s is %d", jobExecUrl,
+        System.currentTimeMillis() - startTime));
   }
 
   /**
@@ -124,6 +131,7 @@ public class AzkabanExceptionLogAnalyzer {
     }
 
     String username = schedulerData.getParamMap().get(USERNAME);
+    //Todo: session management
     if (schedulerData.getParamMap().containsKey(PRIVATE_KEY)) {
       workflowClient.login(username, new File(schedulerData.getParamMap().get(PRIVATE_KEY)));
     } else if (schedulerData.getParamMap().containsKey(PASSWORD)) {
@@ -155,6 +163,7 @@ public class AzkabanExceptionLogAnalyzer {
    * @return Logs after removing all the redundant log for exception fingerprinting
    */
   private String processJobLog(String logs) {
+    logger.debug("Removing redundant log excerpts from whole log");
     for (String logPattern : REGEX_FOR_REDUNDANT_LOG_PATTERN_IN_AZKABAN_LOGS.getValue()) {
       logs = logs.replaceAll(logPattern, "");
     }
