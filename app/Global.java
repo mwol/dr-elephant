@@ -15,6 +15,7 @@
  */
 
 import com.google.common.base.Strings;
+import com.google.common.net.HostAndPort;
 import com.linkedin.drelephant.DrElephant;
 import com.linkedin.drelephant.ElephantContext;
 import com.sun.security.sasl.util.AbstractSaslImpl;
@@ -108,7 +109,9 @@ public class Global extends GlobalSettings {
     if (!Strings.isNullOrEmpty(HTTP_PORT) && !Strings.isNullOrEmpty(HTTPS_PORT)) {
       String port = INVALID_PORT;
       if (!Strings.isNullOrEmpty(requestHeader.host())) {
-        port = getPortFromHostAddress(requestHeader.host());
+        HostAndPort hostAndPort = HostAndPort.fromString(requestHeader.host())
+            .withDefaultPort(Integer.parseInt(HTTP_PORT));
+        port = String.valueOf(hostAndPort.getPort());
       }
       if (!port.equals(INVALID_PORT) && port.equals(HTTP_PORT)) {
         return controllers.Default.redirect(HTTPS_PROTOCOL + requestHeader.host().replace(port, HTTPS_PORT)
@@ -124,19 +127,5 @@ public class Global extends GlobalSettings {
     modifiersField.setAccessible(true);
     modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
     field.set(null, newValue);
-  }
-
-  /**
-   *
-   * @param hostAddress The hostAddress string which will be of format "elephant.abc.com:8080"
-   * @return Return the port of the of the hostAddress if exists else return INVALID_PORT
-   */
-  private String getPortFromHostAddress(String hostAddress) {
-    String patterForPort = "(.+):([\\d]{1,5})";
-    Matcher matcher = Pattern.compile(patterForPort).matcher(hostAddress);
-    if (matcher.find()) {
-      return matcher.group(2);
-    }
-    return INVALID_PORT;
   }
 }
