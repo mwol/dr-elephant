@@ -57,12 +57,12 @@ function play_command() {
 function require_programs() {
   echo "Checking for required programs..."
   missing_programs=""
-  
+
   for program in $@; do
     if ! command -v "$program" > /dev/null; then
       missing_programs=$(printf "%s\n\t- %s" "$missing_programs" "$program")
     fi
-  done 
+  done
 
   if [ ! -z "$missing_programs" ]; then
     echo -e "$ERROR_COLOR_PREFIX The following programs are required and are missing: $missing_programs"
@@ -267,7 +267,7 @@ require_programs zip unzip
 
 # Default configurations
 HADOOP_VERSION="2.3.0"
-SPARK_VERSION="1.4.0"
+SPARK_VERSION="2.2.3"
 
 
 extra_commands=""
@@ -405,7 +405,7 @@ source common.sh
 
 # Run the main command alongwith the extra commands passed as arguments to compile.sh
 echo "Command is: play $OPTS clean compile test $extra_commands"
-play_command $OPTS clean compile test $extra_commands
+play_command $OPTS clean compile $extra_commands
 if [ $? -ne 0 ]; then
   echo "Build failed..."
   exit 1;
