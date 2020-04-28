@@ -80,10 +80,10 @@ class SparkRestClient(sparkConf: SparkConf) {
     * parameters used in the REST API query below are supported only since Spark 2.3.0
     *
     * @param startTime Earliest Finish time for the applications to be retrieved.
-    * @param endTime Latest finish time for the applications to be retrieved.
+    * @param endTime   Latest finish time for the applications to be retrieved.
     * @return A sequence of applications returned from Spark History Server.
     */
-  def fetchCompletedApplicationsData(startTime: Long, endTime: Long) : Seq[ApplicationInfoImpl] = {
+  def fetchCompletedApplicationsData(startTime: Long, endTime: Long): Seq[ApplicationInfoImpl] = {
     val minEndDate = SparkRestObjectMapper.getDateFormat.format(new Date(startTime))
     val maxEndDate = SparkRestObjectMapper.getDateFormat.format(new Date(endTime))
     val appTarget = apiTarget.path(s"applications").queryParam(s"status", "completed").
@@ -144,29 +144,10 @@ class SparkRestClient(sparkConf: SparkConf) {
         case (None, _) => throw new RuntimeException(s"Failed to read log for application ${analyticJob.getAppId}")
         case (Some(inputStream), fileName) => {
           val dataCollection = new SparkDataCollection()
-          dataCollection.load(inputStream, fileName)
-          val sparkDataCollection = LegacyDataConverters.convert(dataCollection)
-          // Augment missing fields, which would happen typically for backfill jobs.
-          augemntAnalyticJob(analyticJob, dataCollection, sparkDataCollection)
-          sparkDataCollection
+          dataCollection.replayEventLogs(inputStream, fileName)
+          dataCollection.getSparkApplicationData
         }
       }
-    }
-  }
-
-  private def augemntAnalyticJob(analyticJob: AnalyticJob, dataCollection: SparkDataCollection,
-      sparkDataCollection: SparkApplicationData): Unit = {
-    if (analyticJob.getUser == null || analyticJob.getUser.isEmpty) {
-      analyticJob.setUser(dataCollection.getGeneralData.getSparkUser)
-    }
-    if (analyticJob.getQueueName == null || analyticJob.getQueueName.isEmpty) {
-      analyticJob.setQueueName(sparkDataCollection.appConfigurationProperties.getOrElse("spark.yarn.queue", ""))
-    }
-    if (analyticJob.getStartTime <= 0) {
-      analyticJob.setStartTime(dataCollection.getGeneralData.getStartTime)
-    }
-    if (analyticJob.getFinishTime <= 0) {
-      analyticJob.setFinishTime(dataCollection.getGeneralData.getEndTime)
     }
   }
 

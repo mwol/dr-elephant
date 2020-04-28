@@ -26,7 +26,7 @@ import com.linkedin.drelephant.configurations.heuristic.HeuristicConfigurationDa
 import com.linkedin.drelephant.math.Statistics
 import com.linkedin.drelephant.spark.data.SparkApplicationData
 import com.linkedin.drelephant.spark.fetchers.statusapiv1.StageData
-import com.linkedin.drelephant.spark.fetchers.statusapiv1.StageStatus
+import org.apache.spark.status.api.v1.StageStatus
 
 /**
   * A heuristic based on metrics for a Spark app's stages.
@@ -35,7 +35,8 @@ import com.linkedin.drelephant.spark.fetchers.statusapiv1.StageStatus
   * each stage.
   */
 class StagesHeuristic(private val heuristicConfigurationData: HeuristicConfigurationData)
-    extends Heuristic[SparkApplicationData] {
+  extends Heuristic[SparkApplicationData] {
+
   import StagesHeuristic._
   import JavaConverters._
 
@@ -66,9 +67,9 @@ class StagesHeuristic(private val heuristicConfigurationData: HeuristicConfigura
       f"stage ${stageData.stageId}, attempt ${stageData.attemptId} (task failure rate: ${taskFailureRate}%1.3f)"
 
     def formatStagesWithLongAverageExecutorRuntimes(stagesWithLongAverageExecutorRuntimes: Seq[(StageData, Long)]): String =
-       stagesWithLongAverageExecutorRuntimes
-         .map { case (stageData, runtime) => formatStageWithLongRuntime(stageData, runtime) }
-         .mkString("\n")
+      stagesWithLongAverageExecutorRuntimes
+        .map { case (stageData, runtime) => formatStageWithLongRuntime(stageData, runtime) }
+        .mkString("\n")
 
     def formatStageWithLongRuntime(stageData: StageData, runtime: Long): String =
       f"stage ${stageData.stageId}, attempt ${stageData.attemptId} (runtime: ${Statistics.readableTimespan(runtime)})"
@@ -130,9 +131,13 @@ object StagesHeuristic {
 
     lazy val executorSummaries: Seq[ExecutorSummary] = data.executorSummaries
 
-    lazy val numCompletedStages: Int = stageDatas.count { _.status == StageStatus.COMPLETE }
+    lazy val numCompletedStages: Int = stageDatas.count {
+      _.status == StageStatus.COMPLETE
+    }
 
-    lazy val numFailedStages: Int = stageDatas.count { _.status == StageStatus.FAILED }
+    lazy val numFailedStages: Int = stageDatas.count {
+      _.status == StageStatus.FAILED
+    }
 
     lazy val stageFailureRate: Option[Double] = {
       val numStages = numCompletedStages + numFailedStages
@@ -140,13 +145,15 @@ object StagesHeuristic {
     }
 
     lazy val stagesWithHighTaskFailureRates: Seq[(StageData, Double)] =
-      stagesWithHighTaskFailureRateSeverities.map { case (stageData, taskFailureRate, _) => (stageData, taskFailureRate) }
+      stagesWithHighTaskFailureRateSeverities.map { case (stageData, taskFailureRate, _) =>
+        (stageData, taskFailureRate) }
 
     lazy val stagesWithLongAverageExecutorRuntimes: Seq[(StageData, Long)] =
       stagesAndAverageExecutorRuntimeSeverities
         .collect { case (stageData, runtime, severity) if severity.getValue > Severity.MODERATE.getValue => (stageData, runtime) }
 
-    lazy val severity: Severity = Severity.max((stageFailureRateSeverity +: (taskFailureRateSeverities ++ runtimeSeverities)): _*)
+    lazy val severity: Severity = Severity.max((stageFailureRateSeverity +:
+      (taskFailureRateSeverities ++ runtimeSeverities)): _*)
 
     private lazy val stageFailureRateSeverityThresholds = stagesHeuristic.stageFailureRateSeverityThresholds
 
@@ -158,7 +165,8 @@ object StagesHeuristic {
       stageFailureRateSeverityThresholds.severityOf(stageFailureRate.getOrElse[Double](0.0D))
 
     private lazy val stagesWithHighTaskFailureRateSeverities: Seq[(StageData, Double, Severity)] =
-      stagesAndTaskFailureRateSeverities.filter { case (_, _, severity) => severity.getValue > Severity.MODERATE.getValue }
+      stagesAndTaskFailureRateSeverities.filter { case (_, _, severity) => severity.getValue > Severity
+        .MODERATE.getValue }
 
     private lazy val stagesAndTaskFailureRateSeverities: Seq[(StageData, Double, Severity)] = for {
       stageData <- stageDatas
@@ -173,7 +181,8 @@ object StagesHeuristic {
       (runtime, severity) = averageExecutorRuntimeAndSeverityOf(stageData)
     } yield (stageData, runtime, severity)
 
-    private lazy val runtimeSeverities: Seq[Severity] = stagesAndAverageExecutorRuntimeSeverities.map { case (_, _, severity) => severity }
+    private lazy val runtimeSeverities: Seq[Severity] = stagesAndAverageExecutorRuntimeSeverities.
+      map { case (_, _, severity) => severity }
 
     private lazy val executorInstances: Int =
       appConfigurationProperties.get(SPARK_EXECUTOR_INSTANCES_KEY).map(_.toInt).getOrElse(executorSummaries.size)

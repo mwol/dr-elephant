@@ -131,7 +131,7 @@ class SparkFetcher(fetcherConfigurationData: FetcherConfigurationData)
   }
 
   private def augmentAnalyticJob(analyticJob: AnalyticJob, sparkApplicationData: SparkApplicationData,
-      restDerivedData: SparkRestDerivedData, lastAttemptInfo: ApplicationAttemptInfo): Unit = {
+    restDerivedData: SparkRestDerivedData, lastAttemptInfo: ApplicationAttemptInfo): Unit = {
     if (analyticJob.getQueueName == null && sparkApplicationData != null) {
       analyticJob.setQueueName(sparkApplicationData.appConfigurationProperties.getOrElse("spark.yarn.queue", ""))
     }
@@ -151,7 +151,6 @@ class SparkFetcher(fetcherConfigurationData: FetcherConfigurationData)
 
   /**
     * Fetches a list of jobs to be backfilled for analysis by Dr. Elephant.
-    *
     * @param startTime Start time from when jobs have to be backfilled.
     * @param endTime   End time upto which jobs can be backfilled.
     * @return list of jobs to be backfilled for analysis.
@@ -160,13 +159,13 @@ class SparkFetcher(fetcherConfigurationData: FetcherConfigurationData)
   override def fetchJobsForBackfill(startTime: Long, endTime: Long): util.List[AnalyticJob] = {
     val list = new util.ArrayList[AnalyticJob]()
     sparkRestClient.fetchCompletedApplicationsData(startTime, endTime).foreach(
-        appInfo => {
-          val lastAttemptInfo = appInfo.attempts.maxBy {
-            _.endTime
-          }
-          list.add(new AnalyticJob().setAppId(appInfo.id).setFinishTime(lastAttemptInfo.endTime.getTime).
-            setUser(lastAttemptInfo.sparkUser).setName(appInfo.name))
-        })
+      appInfo => {
+        val lastAttemptInfo = appInfo.attempts.maxBy {
+          _.endTime
+        }
+        list.add(new AnalyticJob().setAppId(appInfo.id).setFinishTime(lastAttemptInfo.endTime.getTime).
+          setUser(lastAttemptInfo.sparkUser).setName(appInfo.name))
+      })
     list
   }
 }

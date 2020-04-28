@@ -16,37 +16,32 @@
 
 package org.apache.spark.deploy.history
 
-import java.io.InputStream
 import java.security.PrivilegedAction
 
 import com.linkedin.drelephant.analysis.{AnalyticJob, ElephantFetcher}
 import com.linkedin.drelephant.configurations.fetcher.FetcherConfigurationData
 import com.linkedin.drelephant.security.HadoopSecurity
-import com.linkedin.drelephant.spark.legacydata.SparkApplicationData
+import com.linkedin.drelephant.spark.data.SparkApplicationData
 import com.linkedin.drelephant.util.{HadoopUtils, SparkUtils, Utils}
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
-import org.apache.spark.scheduler.{ApplicationEventListener, ReplayListenerBus}
-import org.apache.spark.storage.{StorageStatusListener, StorageStatusTrackingListener}
-import org.apache.spark.ui.env.EnvironmentListener
-import org.apache.spark.ui.exec.ExecutorsListener
-import org.apache.spark.ui.jobs.JobProgressListener
-import org.apache.spark.ui.storage.StorageListener
 
 
 /**
- * A wrapper that replays Spark event history from files and then fill proper data objects.
- */
+  * A wrapper that replays Spark event history from files and then fill proper data objects.
+  */
 class SparkFSFetcher(fetcherConfData: FetcherConfigurationData) extends ElephantFetcher[SparkApplicationData] {
+
   import SparkFSFetcher._
 
   val eventLogSizeLimitMb =
     Option(fetcherConfData.getParamMap.get(LOG_SIZE_XML_FIELD))
       .flatMap { x => Option(Utils.getParam(x, 1)) }
-      .map { _(0) }
+      .map {
+        _ (0)
+      }
       .getOrElse(DEFAULT_EVENT_LOG_SIZE_LIMIT_MB)
   logger.info("The event log limit of Spark application is set to " + eventLogSizeLimitMb + " MB")
   val eventLogUri = Option(fetcherConfData.getParamMap.get(LOG_LOCATION_URI_XML_FIELD))
@@ -71,11 +66,14 @@ class SparkFSFetcher(fetcherConfData: FetcherConfigurationData) extends Elephant
 
   def fetchData(analyticJob: AnalyticJob): SparkApplicationData = {
     val appId = analyticJob.getAppId()
-    doAsPrivilegedAction { () => doFetchData(appId) }
+    doAsPrivilegedAction { () => doFetchData(appId).getSparkApplicationData }
+
   }
 
   protected def doAsPrivilegedAction[T](action: () => T): T =
-    security.doAs[T](new PrivilegedAction[T] { override def run(): T = action() })
+    security.doAs[T](new PrivilegedAction[T] {
+      override def run(): T = action()
+    })
 
   protected def doFetchData(appId: String): SparkDataCollection = {
     val dataCollection = new SparkDataCollection()
@@ -91,25 +89,23 @@ class SparkFSFetcher(fetcherConfData: FetcherConfigurationData) extends Elephant
       dataCollection.throttle()
       // Since the data set is empty, we need to set the application id,
       // so that we could detect this is Spark job type
-      dataCollection.getGeneralData().setApplicationId(appId)
-      dataCollection.getConf().setProperty("spark.app.id", appId)
+      //      dataCollection.getGeneralData().setApplicationId(appId)
+      //      dataCollection.getConf().setProperty("spark.app.id", appId)
 
       logger.info("The event log of Spark application: " + appId + " is over the limit size of "
         + eventLogSizeLimitMb + " MB, the parsing process gets throttled.")
     } else {
       logger.info("Replaying Spark logs for application: " + appId +
-                          " withlogPath: " + eventLogPath +
-                          " with codec:" + eventLogCodec)
+        " withlogPath: " + eventLogPath +
+        " with codec:" + eventLogCodec)
 
       sparkUtils.withEventLog(eventLogFileSystem, eventLogPath, eventLogCodec) { in =>
-        dataCollection.load(in, eventLogPath.toString())
+        dataCollection.replayEventLogs(in, eventLogPath.toString())
       }
 
       logger.info("Replay completed for application: " + appId)
     }
-
     dataCollection
-
   }
 }
 
