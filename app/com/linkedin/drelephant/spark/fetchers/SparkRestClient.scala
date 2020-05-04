@@ -22,7 +22,6 @@ import java.text.SimpleDateFormat
 import java.util.zip.ZipInputStream
 import java.util.{Calendar, Date, SimpleTimeZone}
 
-import com.linkedin.drelephant.spark.legacydata.LegacyDataConverters
 import org.apache.spark.deploy.history.SparkDataCollection
 
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -144,11 +143,8 @@ class SparkRestClient(sparkConf: SparkConf) {
         case (None, _) => throw new RuntimeException(s"Failed to read log for application ${analyticJob.getAppId}")
         case (Some(inputStream), fileName) => {
           val dataCollection = new SparkDataCollection()
-          dataCollection.load(inputStream, fileName)
-          val sparkDataCollection = LegacyDataConverters.convert(dataCollection)
-          // Augment missing fields, which would happen typically for backfill jobs.
-          augemntAnalyticJob(analyticJob, dataCollection, sparkDataCollection)
-          sparkDataCollection
+          dataCollection.replayEventLogs(inputStream, fileName)
+          dataCollection.getSparkApplicationData
         }
       }
     }
