@@ -21,17 +21,19 @@ import java.util.{ArrayList => JArrayList, HashSet => JHashSet, List => JList, S
 
 import com.linkedin.drelephant.analysis.ApplicationType
 import com.linkedin.drelephant.spark.data.SparkApplicationData
-import com.linkedin.drelephant.spark.fetchers.statusapiv1._
+import com.linkedin.drelephant.spark.fetchers.SparkApplicationDataExtractor
+import org.apache.log4j.Logger
 import org.apache.spark.SparkConf
 import org.apache.spark.scheduler.ReplayListenerBus
 import org.apache.spark.status.api.v1
 import org.apache.spark.status.config.ASYNC_TRACKING_ENABLED
-import org.apache.spark.status.{AppStatusListener, AppStatusStore, ElementTrackingStore}
+import org.apache.spark.status.{AppStatusStore, CustomAppStatusListener, ElementTrackingStore}
 import org.apache.spark.util.Utils
 import org.apache.spark.util.collection.OpenHashSet
 import org.apache.spark.util.kvstore.{InMemoryStore, KVStore}
 
 import scala.collection.mutable
+import scala.collection.mutable.HashMap
 
 
 /**
@@ -54,6 +56,11 @@ class SparkDataCollection {
   var stageData: Seq[v1.StageData] = null
   var appInfo: v1.ApplicationInfo = null
 
+  private var executorIdToMaxTotalUtilizedMemory: HashMap[String, Long] = HashMap.empty
+  private var executorIdToMaxUtilizedMemory: HashMap[String, Long] = HashMap.empty
+
+  val logger = Logger.getLogger(SparkDataCollection.getClass)
+
   def throttle(): Unit = {
     _isThrottled = true
   }
@@ -62,34 +69,14 @@ class SparkDataCollection {
 
   def getApplicationType: ApplicationType = APPLICATION_TYPE
 
-  def isEmpty: Boolean = !isThrottled
-
-  def getApplicationInfo: v1.ApplicationInfo = {
-    appInfo
-  }
-
-  def getExecutorSummary: Seq[v1.ExecutorSummary] = {
-    executorSummary
-  }
-
-  def getJobData: Seq[v1.JobData] = {
-    jobData
-  }
-
-  def getStageData: Seq[v1.StageData] = {
-    stageData
-  }
-
-  def getAppEnvironment: Map[String, String] = {
-    environmentInfo.sparkProperties.toMap
-  }
+  def isEmpty: Boolean = !isThrottled && executorSummary.isEmpty
 
   def replayEventLogs(in: InputStream, sourceName: String): Unit = {
     val store: KVStore = createInMemoryStore()
     val replayConf: SparkConf = _conf.clone().set(ASYNC_TRACKING_ENABLED, false)
     val trackingStore: ElementTrackingStore = new ElementTrackingStore(store, replayConf)
     val replayBus: ReplayListenerBus = new ReplayListenerBus()
-    val listener: AppStatusListener = new AppStatusListener(trackingStore, replayConf, false)
+    val listener: CustomAppStatusListener = new CustomAppStatusListener(trackingStore, replayConf, false)
     replayBus.addListener(listener)
 
     try {
@@ -102,110 +89,22 @@ class SparkDataCollection {
         }
         throw e
     }
+    logger.info("Replay of logs complete")
+    executorIdToMaxTotalUtilizedMemory = listener.executorIdToMaxUtilizedTotalMemory
+    executorIdToMaxUtilizedMemory = listener.executorIdToMaxUtilizedMemory
     val appStatusStore: AppStatusStore = new AppStatusStore(store)
     appInfo = appStatusStore.applicationInfo()
     environmentInfo = appStatusStore.environmentInfo()
-    executorSummary = appStatusStore.executorList(true)
+    executorSummary = appStatusStore.executorList(false)
     jobData = appStatusStore.jobsList(null)
     stageData = appStatusStore.stageList(null)
     appStatusStore.close()
   }
 
   def getSparkApplicationData: SparkApplicationData = {
-    new SparkApplicationData(
-      appInfo.id,
-      getAppEnvironment,
-      new ApplicationInfoImpl(appInfo.id, appInfo.name, appInfo.attempts.map(attempt =>
-        new ApplicationAttemptInfoImpl(
-          attempt.attemptId,
-          attempt.startTime,
-          attempt.endTime,
-          attempt.sparkUser,
-          attempt.completed
-        ))),
-      extractJobData(jobData),
-      extractStageData(stageData),
-      extractExecutorSummary(executorSummary)
-    )
+    SparkApplicationDataExtractor.extractSparkApplicationDataFromAppStatusStore(appInfo, environmentInfo, jobData,
+      stageData, executorSummary, executorIdToMaxUtilizedMemory)
   }
-
-  private def extractJobData(datas: Seq[v1.JobData]): Seq[JobData] = {
-    datas.map(jobInfo =>
-      new JobDataImpl(
-        jobInfo.jobId,
-        jobInfo.jobId.toString,
-        jobInfo.description,
-        jobInfo.submissionTime,
-        jobInfo.completionTime,
-        jobInfo.stageIds,
-        jobInfo.jobGroup,
-        jobInfo.status,
-        jobInfo.numTasks,
-        jobInfo.numActiveTasks,
-        jobInfo.numCompletedTasks,
-        jobInfo.numSkippedTasks,
-        jobInfo.numFailedTasks,
-        jobInfo.numActiveStages,
-        jobInfo.numCompletedStages,
-        jobInfo.numSkippedStages,
-        jobInfo.numFailedStages
-      )
-    )
-  }
-
-  private def extractStageData(stageData: Seq[v1.StageData]): Seq[StageDataImpl] = {
-    stageData.map(stageInfo =>
-      new StageDataImpl(
-        stageInfo.status,
-        stageInfo.stageId,
-        stageInfo.attemptId,
-        stageInfo.numActiveTasks,
-        stageInfo.numCompleteTasks,
-        stageInfo.numFailedTasks,
-        stageInfo.executorRunTime,
-        stageInfo.inputBytes,
-        inputRecords = 0,
-        stageInfo.outputBytes,
-        outputRecords = 0,
-        stageInfo.shuffleReadBytes,
-        shuffleReadRecords = 0,
-        stageInfo.shuffleWriteBytes,
-        shuffleWriteRecords = 0,
-        stageInfo.memoryBytesSpilled,
-        stageInfo.diskBytesSpilled,
-        stageInfo.name,
-        stageInfo.details,
-        stageInfo.schedulingPool,
-        accumulatorUpdates = Seq.empty,
-        tasks = None,
-        executorSummary = None
-      ))
-  }
-
-  private def extractExecutorSummary(executorSummarySeq: Seq[v1.ExecutorSummary]):
-  Seq[ExecutorSummaryImpl] = {
-    executorSummarySeq.map(executorSummary =>
-      new ExecutorSummaryImpl(
-        executorSummary.id,
-        executorSummary.hostPort,
-        executorSummary.rddBlocks,
-        executorSummary.memoryUsed,
-        executorSummary.diskUsed,
-        executorSummary.activeTasks,
-        executorSummary.failedTasks,
-        executorSummary.completedTasks,
-        executorSummary.totalTasks,
-        executorSummary.totalDuration,
-        executorSummary.totalInputBytes,
-        executorSummary.totalShuffleRead,
-        executorSummary.totalShuffleWrite,
-        executorSummary.maxMemory,
-        executorSummary.totalGCTime,
-        executorLogs = Map.empty
-      )
-    )
-  }
-
 
   private def createInMemoryStore(): KVStore = {
     val store = new InMemoryStore()

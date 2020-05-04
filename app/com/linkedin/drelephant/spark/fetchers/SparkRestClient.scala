@@ -22,7 +22,6 @@ import java.text.SimpleDateFormat
 import java.util.zip.ZipInputStream
 import java.util.{Calendar, Date, SimpleTimeZone}
 
-import com.linkedin.drelephant.spark.legacydata.LegacyDataConverters
 import org.apache.spark.deploy.history.SparkDataCollection
 
 import scala.concurrent.{Await, ExecutionContext, Future}

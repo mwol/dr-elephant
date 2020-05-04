@@ -135,7 +135,7 @@ trait RDDPartitionInfo{
   def executors: Seq[String]}
 
 trait StageData{
-  def status: org.apache.spark.status.api.v1.StageStatus
+  def status: StageStatus
   def stageId: Int
   def attemptId: Int
   def numActiveTasks: Int
@@ -341,7 +341,7 @@ class RDDPartitionInfoImpl(
   var executors: Seq[String]) extends RDDPartitionInfo
 
 class StageDataImpl(
-  var status: org.apache.spark.status.api.v1.StageStatus,
+  var status: StageStatus,
   var stageId: Int,
   var attemptId: Int,
   var numActiveTasks: Int ,

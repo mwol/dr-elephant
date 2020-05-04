@@ -87,11 +87,6 @@ class SparkFSFetcher(fetcherConfData: FetcherConfigurationData) extends Elephant
     val shouldThrottle = eventLogFileSystem.getFileStatus(eventLogPath).getLen() > (eventLogSizeLimitMb * FileUtils.ONE_MB)
     if (shouldThrottle) {
       dataCollection.throttle()
-      // Since the data set is empty, we need to set the application id,
-      // so that we could detect this is Spark job type
-      //      dataCollection.getGeneralData().setApplicationId(appId)
-      //      dataCollection.getConf().setProperty("spark.app.id", appId)
-
       logger.info("The event log of Spark application: " + appId + " is over the limit size of "
         + eventLogSizeLimitMb + " MB, the parsing process gets throttled.")
     } else {
@@ -100,9 +95,8 @@ class SparkFSFetcher(fetcherConfData: FetcherConfigurationData) extends Elephant
         " with codec:" + eventLogCodec)
 
       sparkUtils.withEventLog(eventLogFileSystem, eventLogPath, eventLogCodec) { in =>
-        dataCollection.replayEventLogs(in, eventLogPath.toString())
+        dataCollection.replayEventLogs(in, eventLogPath.toString)
       }
-
       logger.info("Replay completed for application: " + appId)
     }
     dataCollection

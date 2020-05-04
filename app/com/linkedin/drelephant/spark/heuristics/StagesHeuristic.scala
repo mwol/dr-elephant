@@ -16,17 +16,15 @@
 
 package com.linkedin.drelephant.spark.heuristics
 
-import com.linkedin.drelephant.spark.fetchers.statusapiv1.ExecutorSummary
+import com.linkedin.drelephant.spark.fetchers.statusapiv1.{ExecutorSummary, StageData, StageStatus}
+
 import scala.collection.JavaConverters
 import scala.concurrent.duration
 import scala.concurrent.duration.Duration
-
 import com.linkedin.drelephant.analysis.{Heuristic, HeuristicResult, HeuristicResultDetails, Severity, SeverityThresholds}
 import com.linkedin.drelephant.configurations.heuristic.HeuristicConfigurationData
 import com.linkedin.drelephant.math.Statistics
 import com.linkedin.drelephant.spark.data.SparkApplicationData
-import com.linkedin.drelephant.spark.fetchers.statusapiv1.StageData
-import org.apache.spark.status.api.v1.StageStatus
 
 /**
   * A heuristic based on metrics for a Spark app's stages.

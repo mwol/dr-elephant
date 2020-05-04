@@ -19,7 +19,6 @@ package com.linkedin.drelephant.spark.fetchers
 import com.linkedin.drelephant.analysis.{AnalyticJob, ElephantFetcher}
 import com.linkedin.drelephant.configurations.fetcher.FetcherConfigurationData
 import com.linkedin.drelephant.spark.data.SparkApplicationData
-import com.linkedin.drelephant.spark.legacydata.LegacyDataConverters
 import org.apache.spark.deploy.history.SparkFSFetcher
 
 /**
