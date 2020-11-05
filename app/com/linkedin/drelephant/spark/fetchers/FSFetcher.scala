@@ -31,8 +31,7 @@ class FSFetcher(fetcherConfigurationData: FetcherConfigurationData)
   lazy val legacyFetcher = new SparkFSFetcher(fetcherConfigurationData)
 
   override def fetchData(analyticJob: AnalyticJob): SparkApplicationData = {
-    val legacyData = legacyFetcher.fetchData(analyticJob)
-    LegacyDataConverters.convert(legacyData)
+    legacyFetcher.fetchData(analyticJob)
   }
 }
 

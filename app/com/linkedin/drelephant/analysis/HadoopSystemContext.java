@@ -16,6 +16,7 @@
 
 package com.linkedin.drelephant.analysis;
 
+import org.apache.log4j.Logger;
 import org.apache.hadoop.conf.Configuration;
 
 
@@ -23,6 +24,8 @@ import org.apache.hadoop.conf.Configuration;
  * Hadoop System Information
  */
 public final class HadoopSystemContext {
+
+  private static final Logger logger = Logger.getLogger(HadoopSystemContext.class);
 
   private static final String MAPREDUCE_FRAMEWORK_NAME_PROP = "mapreduce.framework.name";
   private static final String YARN = "yarn";
@@ -34,7 +37,9 @@ public final class HadoopSystemContext {
    */
   public static boolean isHadoop2Env() {
     Configuration hadoopConf = new Configuration();
+    logger.info(hadoopConf.toString());
     String hadoopVersion = hadoopConf.get(MAPREDUCE_FRAMEWORK_NAME_PROP);
+    logger.info("Detected Hadoop Version is " + hadoopVersion);
     return hadoopVersion != null && hadoopVersion.equals(YARN);
   }
 

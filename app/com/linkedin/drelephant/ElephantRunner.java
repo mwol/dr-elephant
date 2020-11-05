@@ -131,7 +131,7 @@ public class ElephantRunner implements Runnable {
     if (HadoopSystemContext.isHadoop2Env()) {
       return new AnalyticJobGeneratorHadoop2();
     } else {
-      throw new RuntimeException("Unsupported Hadoop major version detected. It is not 2.x.");
+      throw new RuntimeException("BlaBla Unsupported Hadoop major version detected. It is not 2.x.");
     }
   }
 
